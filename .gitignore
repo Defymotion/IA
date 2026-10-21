@@ -1,0 +1,31 @@
+# Entornos y caché
+.venv/
+__pycache__/
+*.pyc
+
+# Resultados generados (se regeneran solos)
+Generados/
+_pedidos/
+Analisis/
+LAY_Generados/
+Miniaturas/
+Medidas_cache.txt
+Ultima_corrida.txt
+OldVersions/
+
+# Modelos CAD (propios de clientes / pesados)
+*.ipt
+*.iam
+*.idw
+*.ipn
+*.ipj
+*.dwg
+*.step
+*.stp
+
+# Binarios pesados
+*.zip
+*.mp4
+*.png
+!**/ejemplos/*.png
+!assets/*.png

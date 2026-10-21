@@ -1,0 +1,77 @@
+﻿LAYOUT PALETIZADO - 2026-10-21 09:57
+Biblioteca: C:\Tadeo\Reglas iLogic\Biblioteca_Layout.txt   (1424 modelos, 17 robots, 20 maquinas)
+
+RESUMEN
+  Robot BRTIRPZ1825A  alcance 1800 mm
+  Pallet 1200x1000  caja 500x350x300  patron Columnar
+  6 cajas/capa x 5 capas = 30 cajas/pallet | altura 1644 mm | 385 kg
+  Ciclo 8,0 s -> 450 cajas/h -> 15,0 pallets/h
+  Carga por toma 72 kg / robot 25 kg (estimado) -> EXCEDE
+  Esquina mas lejana pallet 1: 7325 mm -> FUERA DE ALCANCE
+  Toma de cajas cinta 1: 8707 mm -> FUERA DE ALCANCE
+  Vallado 12,1 x 7,4 m, distancia minima al robot 1250 mm
+
+ATENCION
+  - Esquina mas lejana pallet 1 fuera del alcance del robot
+  - Toma de cajas cinta 1 fuera del alcance del robot
+  - La carga por toma (72 kg) supera la del robot (25 kg)
+  - El alcance (1800) supera la distancia al vallado (1250): limitar zonas del robot o alejar la valla
+
+NO ENCONTRADOS (se omitieron)
+  - Gripper -> (sin robot)
+  - Entrada1_Pick -> Toma de cajas cinta 1
+
+REGISTRO
+  AVISO: el ensamble no esta guardado; las piezas generadas van a C:\Tadeo\Reglas iLogic\LAY_Generados
+  Se borraron 94 componentes LAY_ anteriores
+  + BaseRobot <- Ensamble base.iam
+  + Robot <- C:\Tadeo\CosasParaCAD\RobotsBorunte\BRTIRPZ1825A-Four-axis Robot\BRTIRPZ1825A.iam
+  ERROR insertando robot: The parameter is incorrect. (0x80070057 (E_INVALIDARG))
+  + Est1_Transp <- LAY_TranspRodillos_1600x1100x450.ipt
+  + Est1_Pallet <- LAY_Pallet_1200x1000x144.ipt
+  + Dispenser_Transp <- LAY_TranspRodillos_1600x1100x450.ipt
+  + Dispenser_Pallet <- LAY_Pallet_1200x1000x144.ipt
+  + Dispenser <- PSS15E0 sonderEuro laengs (1200x800)am Netz 400V_50Hz, Bremsspannung 400Vjajajaverzinkt _ RAL 9006 weissaluminium0deutsch1-fach Papier (Standard)keine  CDRF17  DR63L4_BR_HR810.iam
+  + Salida1_Transp <- LAY_TranspRodillos_1600x1100x450.ipt
+  + Salida1_Pallet <- LAY_Pallet_1200x1000x144.ipt
+  + Envolvedora <- Ensamblaje Transportador PVC_[CDB.iam
+  + Entrada1_Cinta <- LAY_Cinta_4000x500x800.ipt
+  + Entrada1_Tope <- LAY_Tope_60x500x150.ipt
+  + MesaCarton <- Mesa carton.iam
+  + Extra1 <- PSS15E0 sonderEuro laengs (1200x800)am Netz 400V_50Hz, Bremsspannung 400Vjajajaverzinkt _ RAL 9006 weissaluminium0deutsch1-fach Papier (Standard)keine  CDRF17  DR63L4_BR_HR810.iam
+  + Extra2 <- Derivador.iam
+  Pieza generada: LAY_Valla2_1341x2000.ipt
+  + Valla <- LAY_Valla2_1341x2000.ipt
+  + Valla <- LAY_Valla2_1341x2000.ipt
+  + Valla <- LAY_Valla2_1341x2000.ipt
+  + Valla <- LAY_Valla2_1341x2000.ipt
+  + Valla <- LAY_Valla2_1341x2000.ipt
+  + Valla <- LAY_Valla2_1341x2000.ipt
+  + Valla <- LAY_Valla2_1341x2000.ipt
+  + Valla <- LAY_Valla2_1341x2000.ipt
+  + Valla <- LAY_Valla2_1341x2000.ipt
+  Pieza generada: LAY_Valla2_1355x2000.ipt
+  + Valla <- LAY_Valla2_1355x2000.ipt
+  + Valla <- LAY_Valla2_1355x2000.ipt
+  + Valla <- LAY_Valla2_1355x2000.ipt
+  + Valla <- LAY_Valla2_1355x2000.ipt
+  + Valla <- LAY_Valla2_1355x2000.ipt
+  + Valla <- LAY_Valla2_1355x2000.ipt
+  + Valla <- LAY_Valla2_1355x2000.ipt
+  + Valla <- LAY_Valla2_1355x2000.ipt
+  Pieza generada: LAY_Valla2_670x2000.ipt
+  + Valla <- LAY_Valla2_670x2000.ipt
+  Pieza generada: LAY_Valla2_1480x2000.ipt
+  + Valla <- LAY_Valla2_1480x2000.ipt
+  + Valla <- LAY_Valla2_1480x2000.ipt
+  Pieza generada: LAY_Puerta_1480x2000.ipt
+  + Puerta <- LAY_Puerta_1480x2000.ipt
+  + Valla <- LAY_Valla2_1480x2000.ipt
+  + Valla <- LAY_Valla2_1480x2000.ipt
+  + Valla <- LAY_Valla2_1480x2000.ipt
+  + Valla <- LAY_Valla2_1480x2000.ipt
+  + Valla <- LAY_Valla2_1480x2000.ipt
+  + Valla <- LAY_Valla2_1480x2000.ipt
+  + Valla <- LAY_Valla2_1480x2000.ipt
+  + Tablero <- Tablero.iam
+  Cajas colocadas: 65

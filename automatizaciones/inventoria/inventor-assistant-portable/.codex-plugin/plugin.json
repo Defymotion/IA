@@ -1,0 +1,19 @@
+{
+  "name": "inventor-assistant",
+  "version": "0.2.0",
+  "description": "Diseña piezas y automatiza Autodesk Inventor desde Codex mediante la API COM local de Windows.",
+  "author": {
+    "name": "Local developer"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Inventor Assistant",
+    "shortDescription": "Diseña piezas en Inventor",
+    "longDescription": "Crea piezas paramétricas, abre documentos y exporta archivos con Autodesk Inventor instalado en este equipo.",
+    "developerName": "Local developer",
+    "category": "Productivity",
+    "capabilities": ["Tools"],
+    "defaultPrompt": "Ayúdame a diseñar una pieza en Autodesk Inventor. Confirma dimensiones, unidades y ruta antes de crear archivos."
+  },
+  "mcpServers": "./.mcp.json"
+}

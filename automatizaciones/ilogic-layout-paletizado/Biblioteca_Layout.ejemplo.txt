@@ -1,0 +1,19 @@
+﻿# Biblioteca del generador de layouts. CLAVE = valor
+# valor: nombre de archivo (admite *), Carpeta\archivo, ruta completa, o GENERAR
+# ORIENT_<maquina> = rotX=90 | rotY=0 | rotZ=0   corrige modelos acostados/girados
+# MAQUINA_<nombre> = archivo                      agrega o reemplaza una maquina
+# ROBOT_<nombre> = archivo                        agrega un robot
+# RAIZ: carpeta con tus modelos (robots, maquinas, bases). Cambiala por la de tu PC.
+RAIZ = C:\CAD\Biblioteca
+EXCLUIR = OldVersions;Templates;Design Data;Libraries;Content Center
+BASE_ROBOT = Ensamble base.iam
+BASE_ROBOT_KR = base_principal_circular.iam
+CONV_PALLET = GENERAR
+CINTA_ENTRADA = GENERAR
+PALLET = GENERAR
+CAJA = GENERAR
+VALLA = GENERAR
+PUERTA = GENERAR
+ORIENT_Dispenser_Pallets = rotX=90
+ORIENT_Mesa carton BLQ = rotX=90
+ORIENT_Mesa carton = rotX=90

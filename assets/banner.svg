@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 340" width="1200" height="340" role="img" aria-label="DEFYMOTION · IA — Skills de Claude y automatizaciones">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1a1d23"/>
+      <stop offset="1" stop-color="#2a1f15"/>
+    </linearGradient>
+    <linearGradient id="or" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#f28c28"/>
+      <stop offset="1" stop-color="#ffb35c"/>
+    </linearGradient>
+    <pattern id="grid" width="28" height="28" patternUnits="userSpaceOnUse">
+      <path d="M28 0H0V28" fill="none" stroke="#ffffff" stroke-opacity=".05" stroke-width="1"/>
+    </pattern>
+  </defs>
+  <rect width="1200" height="340" rx="22" fill="url(#bg)"/>
+  <rect width="1200" height="340" rx="22" fill="url(#grid)"/>
+
+  <!-- robot arm -->
+  <g transform="translate(860 40)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="70" y="236" width="140" height="22" rx="6" fill="#33363d"/>
+    <rect x="110" y="214" width="60" height="26" rx="5" fill="#44474f"/>
+    <path d="M140 214 L110 120" stroke="url(#or)" stroke-width="26"/>
+    <path d="M110 120 L230 70" stroke="url(#or)" stroke-width="20"/>
+    <path d="M230 70 L250 110" stroke="#ffb35c" stroke-width="12"/>
+    <circle cx="140" cy="214" r="16" fill="#1a1d23" stroke="#ffb35c" stroke-width="5"/>
+    <circle cx="110" cy="120" r="15" fill="#1a1d23" stroke="#ffb35c" stroke-width="5"/>
+    <circle cx="230" cy="70" r="11" fill="#1a1d23" stroke="#ffb35c" stroke-width="4"/>
+    <!-- gripper -->
+    <path d="M232 110 H272 M236 110 V140 M268 110 V140" stroke="#e6e6e6" stroke-width="6"/>
+    <!-- boxes on pallet -->
+    <rect x="-10" y="222" width="34" height="34" rx="3" fill="#8a6440"/>
+    <rect x="28" y="222" width="34" height="34" rx="3" fill="#a3774d"/>
+    <rect x="9" y="186" width="34" height="34" rx="3" fill="#b9885a"/>
+    <rect x="236" y="146" width="34" height="30" rx="3" fill="#b9885a"/>
+    <!-- sparkles -->
+    <path d="M300 18 l5 13 13 5 -13 5 -5 13 -5 -13 -13 -5 13 -5z" fill="#ffb35c"/>
+    <path d="M40 40 l3 8 8 3 -8 3 -3 8 -3 -8 -8 -3 8 -3z" fill="#ffffff" fill-opacity=".7"/>
+  </g>
+
+  <g font-family="Segoe UI, -apple-system, Helvetica, Arial, sans-serif">
+    <text x="64" y="88" fill="#f28c28" font-size="20" font-weight="700" letter-spacing="6">DEFYMOTION</text>
+    <text x="62" y="168" fill="#ffffff" font-size="74" font-weight="800">Laboratorio <tspan fill="url(#or)">IA</tspan></text>
+    <text x="64" y="214" fill="#c9cbd1" font-size="24">Skills de Claude y automatizaciones para ingeniería</text>
+    <text x="64" y="246" fill="#c9cbd1" font-size="24">mecánica, eléctrica y electrónica.</text>
+    <g font-size="15" font-weight="600">
+      <rect x="64" y="276" width="150" height="34" rx="17" fill="#f28c28" fill-opacity=".16" stroke="#f28c28" stroke-opacity=".5"/>
+      <text x="139" y="298" text-anchor="middle" fill="#ffb35c">Autodesk Inventor</text>
+      <rect x="226" y="276" width="104" height="34" rx="17" fill="#f28c28" fill-opacity=".16" stroke="#f28c28" stroke-opacity=".5"/>
+      <text x="278" y="298" text-anchor="middle" fill="#ffb35c">iLogic</text>
+      <rect x="342" y="276" width="104" height="34" rx="17" fill="#f28c28" fill-opacity=".16" stroke="#f28c28" stroke-opacity=".5"/>
+      <text x="394" y="298" text-anchor="middle" fill="#ffb35c">KiCad 7</text>
+      <rect x="458" y="276" width="160" height="34" rx="17" fill="#f28c28" fill-opacity=".16" stroke="#f28c28" stroke-opacity=".5"/>
+      <text x="538" y="298" text-anchor="middle" fill="#ffb35c">Tableros eléctricos</text>
+      <rect x="630" y="276" width="96" height="34" rx="17" fill="#f28c28" fill-opacity=".16" stroke="#f28c28" stroke-opacity=".5"/>
+      <text x="678" y="298" text-anchor="middle" fill="#ffb35c">Claude</text>
+    </g>
+  </g>
+</svg>

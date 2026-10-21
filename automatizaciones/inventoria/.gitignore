@@ -1,0 +1,16 @@
+.venv/
+__pycache__/
+*.pyc
+# resultados y modelos (pesados / propios de cada PC)
+_pedidos/
+Generados/
+Analisis/
+*.png
+*.zip
+*.mp4
+*.ipt
+*.iam
+*.idw
+*.dwg
+*.ipj
+OldVersions/
