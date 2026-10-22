@@ -6,7 +6,9 @@ Lee las posiciones de `Estudio_IA\\LayoutL3N_Estudio_DWG.iam` (abierto) y arma e
   Celda_A_L3N.iam       celda nueva (alcance Defy): robot, base, gripper, tablero, cerco, freno, mesas, pallets,
                         giratoria A y la cinta de llegada
   Celda_B_existente.iam como está en planta (gráfica)
-  Celda_C_existente.iam representación prolija (sin cintas, freno ni pateador)
+  Celda_C_existente.iam representación prolija (sin cintas Tetra, pateador ni empujador)
+  En las tres celdas se quitan las paredes blancas (factory assets) y el "freno de cajas" (sólo estructura) se
+  reemplaza por módulos BM2000 alineados al extremo del robot.
   Linea_Pallets.iam     camas entre celdas, línea hasta la envolvedora, envolvedora, giratoria final, guía y pasarela
   LayoutL3N_Celdas.iam  paredes + las cinco piezas anteriores, cada una con 3 restricciones de nivelación (planos de
                         origen) con la posición del plano DWG como valor.
@@ -138,30 +140,62 @@ Z0 = dwg2inv(3829.273, 0)[1]
 freno_A = next(s for s in hijos(oA) if s.Name.startswith("Ensamble freno de cajas"))
 Zf = freno_A.RangeBox.MaxPoint.Z * 10
 tramos = {"T1": ((X1, Z0), (X1, Z2 + 150.0)), "T2": ((X1 - 150.0, Z2), (X3 + 150.0, Z2)), "T3": ((X3, Z2 - 150.0), (X3, Zf))}
-mods, resumen = [], []
-for t, (p0, p1) in tramos.items():
+
+
+def modulos(nombre, p0, p1, alinear_fin=False):
+    """Módulos BM2000 en línea recta p0 -> p1 (X, Z en mm, eje de banda). Devuelve (items, resumen)."""
     dx, dz = p1[0] - p0[0], p1[1] - p0[1]
     L = (dx * dx + dz * dz) ** 0.5
     d = (dx / L, dz / L)
     nrm = (-d[1], d[0])      # d x Y en el plano XZ
     n = int(L // PASO)
+    s0 = L - n * PASO if alinear_fin else 0.0
+    items = []
     for i in range(n):
-        s = i * PASO
-        org = (p0[0] + d[0] * s - d[0] * XMIN - nrm[0] * BANDA_Z, BANDA_OBJ - BANDA_Y, p0[1] + d[1] * s - d[1] * XMIN - nrm[1] * BANDA_Z)
+        s = s0 + i * PASO
+        org = (p0[0] + d[0] * s - d[0] * XMIN - nrm[0] * BANDA_Z, BANDA_OBJ - BANDA_Y,
+               p0[1] + d[1] * s - d[1] * XMIN - nrm[1] * BANDA_Z)
         M = [[d[0], 0.0, nrm[0], org[0]], [0.0, 1.0, 0.0, org[1]], [d[1], 0.0, nrm[1], org[2]]]
-        mods.append((BM2000, M, f"BM2000_{t}_{i + 1}"))
-    resumen.append({"tramo": t, "largo_mm": round(L), "modulos": n, "sobrante_mm": round(L - n * PASO)})
+        items.append((BM2000, M, f"BM2000_{nombre}_{i + 1}"))
+    return items, {"tramo": nombre, "largo_mm": round(L), "modulos": n, "sobrante_mm": round(L - n * PASO)}
+
+
+mods, resumen = [], []
+for t, (p0, p1) in tramos.items():
+    it, r = modulos(t, p0, p1)
+    mods += it
+    resumen.append(r)
+
+
+def cinta_celda(nombre, caja):
+    """Cinta interna de la celda (reemplaza al freno de cajas, que es sólo estructura): a lo largo de X, con los
+    módulos alineados al extremo del robot (este, X máx)."""
+    zc = (caja[2] + caja[5]) / 2
+    return modulos(nombre, (caja[0], zc), (caja[3], zc), alinear_fin=True)
+
+
+caja_freno_A = [v * 10 for v in (freno_A.RangeBox.MinPoint.X, freno_A.RangeBox.MinPoint.Y, freno_A.RangeBox.MinPoint.Z,
+                                 freno_A.RangeBox.MaxPoint.X, freno_A.RangeBox.MaxPoint.Y, freno_A.RangeBox.MaxPoint.Z)]
+freno_B = next(s for s in hijos(oB) if s.Name.startswith("Ensamble freno de cajas"))
+caja_freno_B = [v * 10 for v in (freno_B.RangeBox.MinPoint.X, freno_B.RangeBox.MinPoint.Y, freno_B.RangeBox.MinPoint.Z,
+                                 freno_B.RangeBox.MaxPoint.X, freno_B.RangeBox.MaxPoint.Y, freno_B.RangeBox.MaxPoint.Z)]
+dC = [ORG["C"][i] - ORG["A"][i] for i in range(3)]
+caja_freno_C = [caja_freno_A[i] + dC[i % 3] for i in range(6)]
+cintas_int = {}
+for k, caja in (("A", caja_freno_A), ("B", caja_freno_B), ("C", caja_freno_C)):
+    cintas_int[k] = cinta_celda(f"Celda{k}", caja)
+
 # ------------------------------------------------------------------ 2. celdas
-itA = [item(s) for s in hijos(oA) if not es(s.Name, *CINTAS)]
-itA += [item(top["roller conveyor - rotating:1"])] + [item(o) for n, o in top.items() if n.startswith("European Pallet")]
+QUITAR = CINTAS + ("Pared", "Ensamble freno de cajas")   # paredes blancas (factory assets) y freno (sólo estructura)
+itA = [item(s) for s in hijos(oA) if not es(s.Name, *QUITAR)] + cintas_int["A"][0]
+itA += [item(top["roller conveyor - rotating:1"])]   # las pilas de pallets van en Robot_Aereo_Pallets
 itA.append((F["Cinta_Llegada_A"], [[1, 0, 0, ORG["A"][0]], [0, 1, 0, 0], [0, 0, 1, ORG["A"][2]]], "Cinta_Llegada_A"))
-LINEA_B = ("Roller_Conveyor_Straight", "guia_robot_dispensador", "Pasarela")
-itB = [item(s) for s in hijos(oB) if not es(s.Name, *LINEA_B)]
-itC = [item(s) for s in hijos(oC) if not es(s.Name, *CINTAS, "Ensamble freno de cajas", "Ensamble pateador", "Empujador")]
+LINEA_B = ("Roller_Conveyor_Straight", "Pasarela")   # la guía del robot aéreo se reemplaza por Robot_Aereo_Pallets
+itB = [item(s) for s in hijos(oB) if not es(s.Name, *LINEA_B, "guia_robot_dispensador", "Pared", "Ensamble freno de cajas")] + cintas_int["B"][0]
+itC = [item(s) for s in hijos(oC) if not es(s.Name, *QUITAR, "Ensamble pateador", "Empujador")] + cintas_int["C"][0]
 itC.append(item(top["IA_Giratoria_C"]))
 itL = [item(s) for s in hijos(oB) if es(s.Name, *LINEA_B)]
 itL += [item(o) for n, o in top.items() if es(n, "Roller_Conveyor_Straight", "IA_Cama", "MP402", "roller conveyor - rotating:2")]
-
 PAREDES = (top["Paredes:1"].ReferencedDocumentDescriptor.FullDocumentName, mread(top["Paredes:1"].Transformation))
 # cerrar la copia de estudio (propia) antes de insertar: referencia la biblioteca BM de Documents y Inventor no
 # admite dos archivos con el mismo nombre abiertos desde carpetas distintas
@@ -171,6 +205,7 @@ cinta = nuevo()
 poner(cinta, mods, ORG["A"])
 guardar(cinta, F["Cinta_Llegada_A"], "Cinta de llegada celda A (CBP34 -> freno)")
 log["cinta_A"] = {"tramos": resumen, "total_m": round(sum(r["largo_mm"] for r in resumen) / 1000, 2), "modulos": len(mods)}
+log["cintas_internas"] = {k: v[1] for k, v in cintas_int.items()}
 
 piezas = {}
 for clave, items, org, titulo in (("Celda_A_L3N", itA, ORG["A"], "Celda A - L3N nueva (KUKA KR 180 R3200-2 PA)"),
