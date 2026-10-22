@@ -1,7 +1,9 @@
 """L3N: robot aéreo de pallets vacíos (modelo de volumen, estimado) en C:\\DEFYMOTION\\L3N\\Celdas_IA\\Robot_Aereo\\.
 Geometría en planta tomada del DWG ("TRANSPORTE AÉREO PALLETS VACÍOS"): dos rieles de 22,2 m (X -9797 y -11367),
-tres pórticos (patas a 0,72 m) y pilas de pallets al inicio del riel. Alturas: el robot empieza en 2080 mm (perfil
-blanco del layout) y va hacia arriba; rieles y pórticos hasta 3600 (recinto de 4000). Piezas como prismas simples.
+tres pórticos (patas a 0,72 m) y pilas de pallets al inicio del riel. Alturas: la cara superior de los rieles está a 2080 mm
+(perfil blanco del layout); el robot (carro + torre de elevación) va POR ENCIMA de los rieles; por debajo sólo
+cuelgan el sistema de sujeción del pallet y el pallet. Las columnas llegan hasta el riel y lo soportan desde abajo
+(no lo cruzan por arriba). Piezas como prismas simples (estimadas).
 Inserta `Robot_Aereo_Pallets.iam` en `LayoutL3N_Celdas.iam` (origen = giratoria A, con cotas), saca las pilas de
 pallets de `Celda_A_L3N.iam` y la guía vieja de `Linea_Pallets.iam`. Uso: python l3n_robot_aereo.py [--rehacer]
 """
@@ -25,17 +27,18 @@ PALLET_IPT = Path(r"C:\DEFYMOTION\L3N\ADECO 12-12-25\European Pallet_3BC37FCD478
 ORG_A = (-6503.2, 0.0, -35622.3)      # origen del ensamble = giratoria A (coordenadas del layout)
 DWG_A = (3843.973, 1293.966)
 # --- parámetros (mm), estimados salvo los de planta
-Y_ROBOT = 2080.0        # el robot empieza acá y va hacia arriba (perfil blanco del layout)
-Y_TOP = 3600.0          # cara superior de pórticos y rieles
+Y_RIEL_TOP = 2080.0     # cara superior del riel (perfil blanco del layout); el robot va por encima
 RIEL = (100.0, 200.0)   # ancho x alto
-COL = 150.0             # columna cuadrada
+COL = 150.0             # columna cuadrada; llega hasta la cara inferior del riel
 X_RIELES = (-9797.0, -11367.0)
 Z_RIEL = (-31350.0, -53550.0)
 X_PATAS = (-9617.0, -11617.0)
 PORTICOS_DWG = ((3844.75, 3845.47), (3849.70, 3850.40), (3860.83, 3861.56))
-CARRO = (1900.0, 450.0, 1200.0)       # X, Y, Z
-MASTIL = 220.0
-HORQ = (1100.0, 60.0, 120.0)          # largo (Z), alto, ancho; dos horquillas a 600 entre ejes
+CARRO = (1900.0, 400.0, 1200.0)       # X, Y, Z: sobre los rieles
+TORRE = (400.0, 1500.0, 600.0)        # torre de elevación sobre el carro (cadenas / guías)
+ELEV = 150.0                          # barra de elevación que baja entre los rieles
+SUJ = (1300.0, 200.0, 1100.0)         # bastidor de sujeción del pallet, colgado bajo los rieles
+Y_SUJ = 1680.0                        # cara inferior del bastidor en posición alta (transporte)
 Z_CARRO = -36100.0                    # posición actual del carro (sobre la celda A)
 PILAS = ((-10635.0, -31753.0), (-10635.0, -32953.0))   # centros (X, Z) de las pilas de pallets, 10 c/u
 
@@ -116,10 +119,18 @@ def prisma(nombre, sx, sy, sz, color=None):
 # ------------------------------------------------------------------ 0. preparación
 OUT.mkdir(parents=True, exist_ok=True)
 if "--rehacer" in sys.argv:
+    lay0 = next((d for d in inv._items(app.Documents) if S(lambda: Path(d.FullFileName).resolve() == LAYOUT.resolve(), False)), None)
+    if lay0 is not None:   # quitar el robot viejo del layout abierto para poder borrar sus archivos
+        for o in list(inv._items(lay0.ComponentDefinition.Occurrences)):
+            if o.Name.startswith("Robot_Aereo_Pallets"):
+                o.Delete()
+        lay0.Update()
+        lay0.Save()
     for d in list(inv._items(app.Documents)):
         f = str(S(lambda: d.FullFileName, "")).lower()
         if f.startswith(str(OUT).lower() + "\\"):
             S(lambda: d.Close(True))
+    S(lambda: app.Documents.CloseAll(True))
     for p in OUT.glob("*.i??"):
         p.unlink()
 if ROBOT.exists():
@@ -127,13 +138,15 @@ if ROBOT.exists():
 
 # ------------------------------------------------------------------ 1. piezas
 L_RIEL = Z_RIEL[0] - Z_RIEL[1]
+y_riel = Y_RIEL_TOP - RIEL[1]
 P = {
     "Riel_aereo": prisma("Riel_aereo", RIEL[0], RIEL[1], L_RIEL, "acero"),
-    "Columna_portico": prisma("Columna_portico", COL, Y_TOP, COL, "acero"),
+    "Columna_portico": prisma("Columna_portico", COL, y_riel, COL, "acero"),
     "Travesano_portico": prisma("Travesano_portico", abs(X_PATAS[0] - X_PATAS[1]) + COL, COL, COL, "acero"),
     "Carro_robot": prisma("Carro_robot", CARRO[0], CARRO[1], CARRO[2], "naranja"),
-    "Mastil_robot": prisma("Mastil_robot", MASTIL, Y_TOP - RIEL[1] - CARRO[1] - Y_ROBOT, MASTIL, "naranja"),
-    "Horquilla_robot": prisma("Horquilla_robot", HORQ[2], HORQ[1], HORQ[0], "acero"),
+    "Torre_robot": prisma("Torre_robot", TORRE[0], TORRE[1], TORRE[2], "naranja"),
+    "Barra_elevacion": prisma("Barra_elevacion", ELEV, Y_RIEL_TOP + CARRO[1] - Y_SUJ - SUJ[1], ELEV, "acero"),
+    "Sujecion_pallet": prisma("Sujecion_pallet", SUJ[0], SUJ[1], SUJ[2], "acero"),
 }
 log["piezas"] = {k: str(v) for k, v in P.items()}
 
@@ -156,20 +169,18 @@ def add(nombre, ruta, x, y, z):
     return o
 
 
-y_riel = Y_TOP - COL - RIEL[1]          # rieles colgados bajo los travesaños
 for i, x in enumerate(X_RIELES):
     add(f"Riel_{i + 1}", P["Riel_aereo"], x, y_riel, (Z_RIEL[0] + Z_RIEL[1]) / 2)
 for j, (xa, xb) in enumerate(PORTICOS_DWG):
     z = (dwg_z(xa) + dwg_z(xb)) / 2
     for k, x in enumerate(X_PATAS):
         add(f"Columna_{j + 1}{'ab'[k]}", P["Columna_portico"], x, 0.0, z)
-    add(f"Travesano_{j + 1}", P["Travesano_portico"], (X_PATAS[0] + X_PATAS[1]) / 2, Y_TOP - COL, z)
+    add(f"Travesano_{j + 1}", P["Travesano_portico"], (X_PATAS[0] + X_PATAS[1]) / 2, y_riel - COL, z)
 xc = (X_RIELES[0] + X_RIELES[1]) / 2
-y_carro = y_riel - CARRO[1]
-add("Carro", P["Carro_robot"], xc, y_carro, Z_CARRO)
-add("Mastil", P["Mastil_robot"], xc, Y_ROBOT, Z_CARRO)
-for k, dx in enumerate((-300.0, 300.0)):
-    add(f"Horquilla_{k + 1}", P["Horquilla_robot"], xc + dx, Y_ROBOT - HORQ[1], Z_CARRO)
+add("Carro", P["Carro_robot"], xc, Y_RIEL_TOP, Z_CARRO)
+add("Torre_elevacion", P["Torre_robot"], xc, Y_RIEL_TOP + CARRO[1], Z_CARRO)
+add("Barra_elevacion", P["Barra_elevacion"], xc, Y_SUJ + SUJ[1], Z_CARRO)
+add("Sujecion_pallet", P["Sujecion_pallet"], xc, Y_SUJ, Z_CARRO)
 # pallet en las horquillas y pilas de 10 al inicio del riel (origen del ipt: se corrige por caja)
 tmp = rcd.Occurrences.Add(str(PALLET_IPT), mmake(trasl(0, 0, 0)))
 rob.Update()
@@ -185,7 +196,7 @@ def pallet(nombre, x, y, z):
     o.Grounded = True
 
 
-pallet("Pallet_en_horquillas", xc, Y_ROBOT - HORQ[1] - ph, Z_CARRO)
+pallet("Pallet_en_sujecion", xc, Y_SUJ - ph, Z_CARRO)
 for i, (x, z) in enumerate(PILAS):
     for k in range(10):
         pallet(f"Pila{i + 1}_pallet_{k + 1}", x, k * ph, z)
@@ -193,7 +204,7 @@ rob.Update()
 inv._iprop(rob, "Design Tracking Properties", "Part Number", "Robot aéreo de pallets vacíos (volumen estimado)")
 rob.SaveAs(str(ROBOT), False)
 bt = caja_mm(rcd.RangeBox)
-log["robot"] = {"archivo": str(ROBOT), "ocurrencias": n + 21,
+log["robot"] = {"archivo": str(ROBOT), "ocurrencias": n + 21, "riel_top": Y_RIEL_TOP, "torre_top": Y_RIEL_TOP + CARRO[1] + TORRE[1],
                 "envolvente_layout_mm": [round(bt[i] + ORG_A[i % 3]) for i in range(6)],
                 "porticos_Z": [round((dwg_z(a) + dwg_z(b)) / 2) for a, b in PORTICOS_DWG]}
 rob.Close(True)
