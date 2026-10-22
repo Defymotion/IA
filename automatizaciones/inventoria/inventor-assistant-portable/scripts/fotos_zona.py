@@ -1,6 +1,6 @@
 """Fotos de una zona de un ensamble abierto (sin tocar geometría): oculta bocetos, cotas 3D y elementos de trabajo,
 y saca planta + isométrica encuadrando la caja indicada (mm, coordenadas del ensamble). Restituye la cámara.
-Uso: python fotos_zona.py <iam> <carpeta> <prefijo> xmin zmin xmax zmax [--guardar-visibilidad]
+Uso: python fotos_zona.py <iam> <carpeta> <prefijo> xmin zmin xmax zmax [--guardar-visibilidad] [--dir dx,dz] [--alto mm]
 """
 import sys
 import time
@@ -13,6 +13,8 @@ import inventor_mcp as inv  # noqa: E402
 S = inv._safe
 ruta, out, pref = Path(sys.argv[1]), Path(sys.argv[2]), sys.argv[3]
 x0, z0, x1, z1 = (float(v) / 10 for v in sys.argv[4:8])
+dirx, dirz = (float(v) for v in sys.argv[sys.argv.index("--dir") + 1].split(",")) if "--dir" in sys.argv else (1.0, 1.0)
+alto_cam = float(sys.argv[sys.argv.index("--alto") + 1]) / 10 if "--alto" in sys.argv else 2500.0
 out.mkdir(parents=True, exist_ok=True)
 app = inv._inventor(start_if_needed=False)
 app.SilentOperation = True
@@ -34,7 +36,7 @@ try:
     w, h = abs(x1 - x0) * 1.08, abs(z1 - z0) * 1.08
     hechos = []
     for nombre, eye, up in (("planta", (cx, 3000, cz), (0, 0, -1)),
-                            ("iso", (cx + 2000, 2500, cz + 2000), (0, 1, 0))):
+                            ("iso", (cx + 2000 * dirx, alto_cam, cz + 2000 * dirz), (0, 1, 0))):
         cam.Target = tg.CreatePoint(cx, 100, cz)
         cam.Eye = tg.CreatePoint(*eye)
         cam.UpVector = tg.CreateUnitVector(*up)
