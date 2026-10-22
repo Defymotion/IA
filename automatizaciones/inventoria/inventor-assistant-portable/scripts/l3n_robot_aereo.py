@@ -28,7 +28,7 @@ ORG_A = (-6503.2, 0.0, -35622.3)      # origen del ensamble = giratoria A (coord
 DWG_A = (3843.973, 1293.966)
 # --- parámetros (mm), estimados salvo los de planta
 Y_RIEL_TOP = 2080.0     # cara superior del riel (perfil blanco del layout); el robot va por encima
-RIEL = (100.0, 200.0)   # ancho x alto
+RIEL = (100.0, 100.0)   # ancho x alto (las rejas Fademaq de 1960 pasan por debajo: cara inferior a 1980)
 COL = 150.0             # columna cuadrada; llega hasta la cara inferior del riel
 X_RIELES = (-9797.0, -11367.0)
 Z_RIEL = (-31350.0, -53550.0)
