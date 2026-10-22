@@ -213,6 +213,8 @@ def _contorno_frame_curvo(W: float, L: float):
     C = FRAME_CURVA
     hz = C["hz"]
     span = C["pts"][-1][1]
+    if L / 2 - hz > span:          # frame largo (varias cajas): tramo recto a alto completo y la curva de ADECO2
+        hz = L / 2 - span          # completa hacia cada extremo
     s = min(1.0, (L / 2 - hz) / span)
     if s < 0.35:
         return None
