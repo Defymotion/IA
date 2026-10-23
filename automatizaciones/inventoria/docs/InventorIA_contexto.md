@@ -646,3 +646,308 @@ El diseño por defecto de los grippers de 3 y 4 cajas da **idéntico** que antes
 - **Relevamientos** en `Analisis\DOSHERMANOS\`: relevamiento.json, comerciales.json, fotos.
   - Scripts nuevos: `relevar_doshermanos.py`, `relevar_comercial.py`, `fotos_ensamble.py`, `diag_calidad.py`, `partir_zip_existente.py`.
 - El último pedido usado es el **p155**; el próximo, **p156**.
+
+## L3N Paletizado L3 2027 (Adecoagro Chivilcoy) — instalación y relevamiento, 21/10/2026
+
+- PC de Nahuel (nm). Documentos de Windows está en OneDrive: el instalador creó InventorIA en
+  `OneDrive\Documentos\InventorIA`, pero los scripts usan `Path.home()/Documents`. Se movió todo a
+  `C:\Users\nm\Documents\InventorIA` (la copia vieja quedó como `OneDrive\Documentos\InventorIA_viejo_para_borrar`).
+  Pendiente en el repo: que el instalador y los scripts usen la misma ruta.
+- Pedidos: p001 `test_create_box.py` OK; p002 falló (el activo era la pieza de prueba); p003 `activar_doc.py`
+  (nuevo: activa un documento abierto y cierra sólo los de una carpeta propia); p004 `relevar_activo.py --nombre L3N` OK.
+- Original (no tocar): `C:\DEFYMOTION\L3N\LayoutL3N_Principal.iam`, proyecto `L3N_AdecoagroChivilcoy.ipj`.
+  Relevamiento en `Analisis\L3N\` (35 componentes de primer nivel, 523 referencias): 3 celdas
+  (`ADECOAGRO_Chivilcoy:1` y dos `ADECOAGRO_Chivilcoy - L3N_Linea3`, la `:3` fija, 4268 x 3951 mm),
+  pallets europeos 1200 x 1000 apilados, transportes `Roller_Conveyor_Straight_400V_FlatBelt` y
+  `roller conveyor - rotating`, envolvedora `MP402:1`.
+- Robot de la celda nueva según la oferta: KUKA KR 180 R3200-2 PA (el modelo del layout viene de ADECO, KR 140).
+- Faltan del cliente: caja (medidas y peso), cajas por toma, patrón y pisos del pallet.
+- Último pedido: p004.
+
+### L3N — copia de estudio ajustada al DWG de planta (22/10/2026)
+
+- Copia (no toca originales): `C:\DEFYMOTION\L3N\Estudio_IA\LayoutL3N_Estudio_DWG.iam` + subensamble copia
+  `ADECOAGRO_Chivilcoy_Estudio_DWG.iam` (dentro del proyecto L3N para que resuelvan las referencias).
+  Script `l3n_estudio_dwg.py [--rehacer]`. Restricciones del principal suprimidas, todo fijo en posiciones absolutas.
+- Mapeo DWG (m) -> Inventor (mm): ancla giratoria A DWG (3843.973, 1293.966) = Inventor (X -6503.2, Z -35622.3);
+  X = -6503.2 + (1293.966 - y)*1000 ; Z = -35622.3 - (x - 3843.973)*1000.
+- Celda A = `L3N_Linea3:2`; celda B = `ADECOAGRO_Chivilcoy:1` (incluía la giratoria de C y sus camas; en la copia
+  quedan suprimidas y se pusieron nuevas en el principal); celda C = `L3N_Linea3:3`.
+  Movidos: B -668 mm en Z (A->B 8,36 m), C +432 mm en Z (B->C 6,59 m) y bajada a nivel de piso (y -24,4).
+- Línea de pallets: envolvedora a 16,27 m y giratoria final a 21,09 m de A, +3 camas de rodillos de 2 m.
+  Sin la giratoria intermedia (pedido del usuario). Tramos sin cama (a medida): A->B 610, B->C 882, antes de la
+  giratoria final 1292 mm.
+- Cinta de llegada A (alcance Defy, viene de la embandejadora CBP34): 31,2 m con 13 módulos BM2000 de
+  `Cintas Transportadoras` (una sola familia: las carpetas BM comparten nombres de archivo y Inventor no abre dos
+  iguales -> error E_INVALIDARG en Occurrences.Add). Banda a 800 mm (las patas 40x40 quedan ~280 mm en el aire).
+  La cinta vieja dibujada en A (correas + curvas, en `L3N_Linea3:2`) se ocultó en el principal con
+  `ocultar_subocc.py` (Visible=False, no toca el subensamble).
+- Freno de cajas de C agregado en la misma posición relativa que A. Línea 4 (Tetra) en el DWG llega ~1,3 m al este:
+  falta definir el empalme. B: su cinta Tetra modelada cruza la línea de pallets B->C (revisar con el usuario).
+- Tetra Pak: no hay CAD de máquinas; sólo `Medidas cinta tetra.ipt` (tramo 3 m, 205 x 110) y `Tope cinta tetra.iam`.
+- Fotos: `Analisis\L3N\estudio_dwg\` (general2_*, celdaA_*, celdas_*). Scripts nuevos: medir_ensambles,
+  relevar_internos, relevar_estados, abrir_layout, fotos_zona, ocultar_subocc, l3n_estudio_dwg.
+- Lección: escribir el pedido como .tmp y renombrar a .json (un .json vacío se ejecutó y falló, p008).
+- Último pedido: p020.
+
+### L3N — ensambles por celda (22/10/2026, tarde)
+
+- Nueva estructura en `C:\DEFYMOTION\L3N\Celdas_IA\` (archivos nuevos; nada existente tocado), script `l3n_celdas.py [--rehacer]`:
+  `LayoutL3N_Celdas.iam` (paredes + 4 piezas, cada una con 3 restricciones de nivelación X/Y/Z contra los planos de
+  origen, valor = posición DWG), `Celda_A_L3N.iam` (nueva, alcance Defy, incluye `Cinta_Llegada_A.iam`),
+  `Celda_B_existente.iam` (como en planta), `Celda_C_existente.iam` (representación: sin cintas, freno, pateador ni
+  empujador), `Linea_Pallets.iam` (camas entre celdas + línea + MP402 + giratoria final + guía + pasarela).
+  Origen de cada celda = centro de su mesa giratoria a nivel de piso: A (-6503, 0, -35622), B (-6496, 0, -43982),
+  C (-6483, 0, -50572). Las piezas internas están fijas en coordenadas relativas a ese origen (sin restricciones).
+- Celda nueva = A (KUKA KR 180 R3200-2 PA; el modelo sigue siendo el KR 140 de ADECO). B y C existen y son sólo gráfica.
+- Error E_INVALIDARG (-2147024809) en `Occurrences.Add` de un ensamble: ocurre cuando ya hay cargado en sesión otro
+  archivo con el mismo nombre desde otra carpeta (aunque sin ventana). Diagnóstico: `diag_insertar.py` (lista
+  conflictos de nombre). Solución: NO copiar una sola carpeta BM (comparten piezas entre BM1800/2000/2260/2400);
+  usar la biblioteca original de Documents y hacer `Documents.CloseAll(True)` (sólo no referenciados) antes de insertar.
+  Quedó una copia descartable en `Estudio_IA\_descartar_copia_BM2000` (borrar).
+- Datos del cliente para la celda A (PDF 2PADOK 7703-UK-4, 27/05/2026): caja WASF open ends TBA 250 Edge Helicap
+  3x8, 386 x 156 x 149 mm, 6,1 kg; pallet 1200x1000 (150 mm, 25 kg); 17 cajas/capa, 8 capas, 136 cajas/pallet;
+  carga 1158 x 928 x 1192; total 854,6 kg, 1342 mm de alto; cartón 3 mm; sin saliente. Copia en
+  `Analisis\L3N\TBA_250_Edge_Helicap_3x8_WASF_open_ends.pdf`.
+- Video de la celda B en funcionamiento (IMG_7322.MOV, 86 s): banda modular blanca con guías laterales de caño,
+  tope/pateador neumático, el robot toma 1 caja por vez con gripper de apriete lateral y apila sobre pallet;
+  mesa giratoria de pallets y cortina/barrera a la salida. Cuadros en `Analisis\L3N\video_B\`.
+- Fotos: `Analisis\L3N\celdas_ia\`. Último pedido: p037.
+
+### L3N — celdas v2, caja real y pallet (22/10/2026, 13:30)
+
+- `l3n_celdas.py` v2: quita las paredes blancas (factory assets `Pared`, `Pared (puerta)`) de las tres celdas y
+  reemplaza el `Ensamble freno de cajas` (sólo estructura) por 2 módulos BM2000 (4,45 m) alineados al extremo del
+  robot, banda a 800 mm. C también lleva cinta interna (representación). La copia descartable de BM2000 se borró.
+- `l3n_caja_pallet.py`: `Celdas_IA\Producto\Caja_TBA250_3x8.ipt` (386x156x149, 6,1 kg, apariencia Cartón -
+  Ondulado, origen centro de la base) y `Pallet_TBA250_17x8.iam` (pallet 1200x1000x152 + 136 cajas: 2 filas de 7
+  giradas + 1 fila de 3, capas impares a 180°; envolvente 1200 x 1344 x 1000, 861 kg). Reemplazó `Pallet_Completo`
+  en `Celda_A_L3N.iam` (`IA_Pallet_TBA250`) y puso `IA_Caja_en_cinta` en el extremo del robot.
+- Robot aéreo de pallets (pedido del usuario): en el DWG de planta está como "TRANSPORTE AÉREO PALLETS VACÍOS":
+  dos rieles de 100 mm a y=1297,26 y 1298,83 (Inventor X -9797 y -11367), x 3839,7-3861,9 (Z -31350 a -53550,
+  22,2 m), riel central a y=1298,16 (X -10697) de 20 m; pórticos (pares de patas a 0,72 m) en x 3844,75/3845,47,
+  3849,7/3850,4 y 3860,83/3861,56 con travesaños de 2 m en y 1297,08-1299,08; estaciones de pallets (1,07 x 2,4 m)
+  en x 3843,45-3844,52, 3851,8-3852,87 y 3858,39-3859,46 (sobre cada celda), y 1296,35-1298,75.
+  En Inventor sólo hay `guia_robot_dispensador_de_pallets` (perfil 80, X -9858, Z -56256..-31056, alto 2080).
+  Faltan alturas y perfiles (preguntados al usuario). Foto real en el chat del 22/10 (pórtico con columna, carro
+  naranja con mástil y horquillas, pila de pallets en el piso).
+- Fotos: `Analisis\L3N\celdas_ia\v2_*, v3_*`. Último pedido: p042.
+- Robot aéreo modelado como volúmenes (`l3n_robot_aereo.py`, `Celdas_IA\Robot_Aereo\Robot_Aereo_Pallets.iam`,
+  insertado en el layout con cotas al origen de A): 2 rieles 100x200 de 22,2 m colgados a 3250-3450, 3 pórticos
+  150x150 hasta 3600 en Z -36759/-41699/-52844 (patas en X -9617 y -11617), carro 1900x450x1200 bajo los rieles,
+  mástil 220 desde 2080 (donde empieza el robot) hasta el carro, 2 horquillas con un pallet, y 2 pilas de 10
+  pallets al inicio del riel (las "European Pallet" que estaban sueltas; se quitaron de Celda_A y la guía vieja de
+  Linea_Pallets). Todas las alturas y perfiles son estimados: ajustar con datos reales. `cambiar_apariencia.py`
+  (apariencia por nombre que EMPIEZA con el texto; "naranja" contenía "ladrillo naranja"). Último pedido: p047.
+- Robot aéreo v2 (corrección del usuario): rieles 100x200 con cara superior en 2080 (perfil blanco); carro
+  1900x400x1200 y torre 400x1500x600 POR ENCIMA de los rieles (tope 3980); por debajo sólo barra de elevación 150,
+  bastidor de sujeción 1300x200x1100 (cara inferior a 1680 en transporte) y el pallet; columnas 150x150 hasta la
+  cara inferior del riel (1880) con travesaño debajo, no cruzan por arriba. `--rehacer` quita primero el robot del
+  layout abierto. Fotos v6_aereoA. Último pedido: p049.
+- Rejas (22/10 13:55): `l3n_rejas_A.py [A|C]` arma el cerco con las piezas Fademaq de la celda B (columna
+  `Ensamblaje Columna_[CP1512]_ADECO.iam` 180x180x1955 y `Panel 03_[CP1512]` 1240x900 en dos alturas) sobre las
+  líneas del cercamiento original de A (relativas a la giratoria: sur z -2905, este x -935, norte interna z +866,
+  norte lejana z +4518; oeste abierto). Paso ≤1320 (4+2+4+6 bahías). Igual en C. Riel bajado a 100x100 (cara
+  inferior 1980): `l3n_chequeo_rejas.py` no da choques en A ni C. Pendiente: puerta de acceso (B tiene
+  `Ensamblaje Puerta 01` + `Columna Puerta`) — falta que el usuario diga dónde va.
+  B: el pórtico 2 del robot aéreo (Z -41699, del DWG) cruza un panel transversal del cerco de B en X≈-10078: o el
+  pórtico real está en otro lado o el panel; a verificar en planta. Último pedido: p063.
+- Referencias rotas (22/10 14:00): el cartel "requiere datos del documento ..._descartar_copia_BM2000\Piñon BM.ipt"
+  salió porque Inventor había resuelto los BM2000 de Celdas_IA a la copia borrada (mismo nombre de archivo ya
+  cargado en sesión). Arreglo: biblioteca de bandas DENTRO del proyecto en `C:\DEFYMOTION\L3N\Cintas
+  Transportadoras\Banda Modular 2000` (+ `Banda Modular 1800\UCT205`, que BM2000 referencia) copiada desde
+  Documents (sin OldVersions); referencias de Cinta_Llegada_A, Celda_A/B/C re-apuntadas con `reapuntar_refs.py`
+  (--solo-raiz) y layout recargado con `l3n_recargar.py` (cierra sólo documentos de Celdas_IA/Estudio_IA).
+  Lección: NO borrar carpetas de las que Inventor tenga documentos cargados; antes cerrar y `CloseAll(True)`.
+  La biblioteca maestra sigue en Documents\InventorIA\Cintas Transportadoras; la del proyecto es copia de trabajo.
+- Gripper celda A: igual criterio que B (1 caja por toma, apriete sobre las caras de 386, palas sobre 156).
+  `calc_gripper.py --fila 156 --apriete 386 --alto 149 --masa 6.1 --cajas 1`: F = 225,9 N, ADN-20-80 (FS 2,23)
+  o ADN-25-80 (FS 3,5); gripper estimado 18,4 kg. Copia de referencia para `construir_gripper.py` armada en
+  `Documents\InventorIA\12_ADECO2\{Gripper, Neumatica, Guias Lineales}` (desde L3N\ADECO 12-12-25, sin OldVersions).
+  Pedido p079: `construir_gripper.py --nombre GRIPPER_1xTBA250 ...` (salida Generados\GRIPPER_1xTBA250).
+- Gripper GRIPPER_1xTBA250 construido (p084, 142 s): `Generados\GRIPPER_1xTBA250\Ensamble\Gripper_GRIPPER_1xTBA250.iam`
+  con `--paso 300` (con paso 156 el frame no entra la brida de 250 ni el logo: falla el pliegue 1). Un módulo de pala
+  móvil ADN-25-80 + HGH15, pala fija con goma. Masa 25,1 kg (estimación 18,4), envolvente 453 x 300 x 432, luz
+  abierta 431 (caja 386 + 45). Interferencias sólo las normales (rosca/tuerca, soporte). Avisos de proceso: si un
+  run falla a mitad, quedan "PiezaNN/EnsamblajeNN" sin guardar abiertos y el siguiente SaveAs da E_INVALIDARG:
+  `cerrar_propios.py` los cierra. `listar_abiertos.py` para ver ventanas/sin guardar. Pendiente: versión --liviano,
+  insertar en Celda_A_L3N reemplazando Gripper_ADECO2_V1, planos (planos_gripper.py). Último pedido: p084.
+- Gripper definitivo celda A: toma de 3 a 7 cajas con garras individuales (como B: toma 3 y deja de a 1, toma 7 y
+  deja de a 7). `GRIPPER_7xTBA250` (p088, 248 s, `--cajas 7 --paso 156 --alas-rectas`; las alas curvas de ADECO2
+  sólo entran hasta ~L/2-hz ≤ span: con 1092 de largo da AssertionError en _contorno_frame_curvo). 7 módulos
+  ADN-25-80 + HGH15, pala fija corrida. Masa 70,3 kg (+42,7 de cajas = 113 kg, KR 180 OK), envolvente
+  453 x 1092 x 432, luz abierta 431. Interferencias sólo las normales (×7). GRIPPER_1xTBA250 queda como descarte.
+  Pendiente: versión --liviano, insertar en Celda_A_L3N, planos. Último pedido: p088.
+- GRIPPER_7xTBA250 v2 (p091/p094): alas curvas también en frames largos (`_contorno_frame_curvo`: si L/2-hz > span,
+  hz = L/2-span: tramo recto a alto completo y la curva de ADECO2 en las puntas) y pintado como ADECO2 con
+  `pintar_como.py` (frame Blanco, brida/palas Turquesa, gomas Gris; apariencias por nombre, con CopyTo y fallback
+  a la biblioteca). Foto `..._iso_pintado.png`. Pendiente: "estrías" en la estructura media (preguntado: ¿franjas de
+  perforaciones de la pala fija o nervaduras en el alma?). Último pedido: p094.
+- Gripper montado en la celda A (`l3n_montar_gripper.py --en-brida`, p115): `IA_Gripper_7xTBA250` colgado del
+  círculo de agujeros del eslabón V05 del KR 140 (local del .ipt (1850, 0, 1745), normal -Z; relevado con
+  `analizar_brida_kr.py`), largo a lo largo de X. El `Gripper_ADECO2_V1:1` quedó SUPRIMIDO y renombrado
+  `..._reemplazado` (Delete falla con el layout abierto; también `Transformation =` y `Grounded`: usar
+  `SetTransformWithoutConstraints`). Sistema local del gripper generado: largo +Y, brida en z mín (normal -Z),
+  palas +Z; ADECO2: largo +X, brida +Y, palas -Y; RN2O = [[0,1,0],[0,0,-1],[-1,0,0]].
+  Brida vs robot: STEP KR120/180/240 R3200 PA: 12 x Ø12 en PCD 160, 3 grupos de 4 a 20° (centros 90/210/330);
+  brida ADECO2/gripper: PCD 160, Ø12, 3 grupos de 4 (centros 0/120/240) -> mismo patrón girado 30°. El modelo
+  KR140 V05 del layout tiene PCD 125 x 12 Ø10 (no es la brida real). Foto v13_gripperA. Último pedido: p116.
+- Simulación celda A (22/10 15:10): `armar_l3n.py [--rearmar]` (plantilla de armar_newpack) arma
+  `Generados\L3N_SIM\CeldaA_simulacion.iam` + `Gripper_sim.iam` + `escena.json`: oculta el KUKA armado, agrega
+  SIM_V01..V05 (matrices del ADECO en `12_ADECO2\KUKA`, copiado), phi0 calculado de la normal de la brida de V05
+  (=-90-atan2(-0.6889,0.7249)), gripper colgado de la brida (BRIDA_G=(387,546,-245.2) local; R_WD largo a lo largo
+  de X), registra los 7 módulos con su restricción "Apertura", oculta el pallet lleno y agrega pallet vacío +
+  136 cajas ocultas. El robot es de 4 ejes: la brida queda siempre horizontal (celda_kin). Primera corrida (p117)
+  guardó la escena pero la celda tenía un gripper duplicado (`Gripper_GRIPPER_7xTBA250:2`, resto de p106/p108)
+  y el gripper de 7 quedó "sin resolver" por piezas del GRIPPER_1x (mismos nombres) cargadas en sesión:
+  Delete/Suppress/Definition.Document fallan. Pendiente: reiniciar Inventor, `l3n_limpiar_celdaA.py`, `armar_l3n.py
+  --rearmar`, foto. Lección: no construir dos grippers con piezas del mismo nombre en la misma sesión (o cerrar todo
+  entre uno y otro). Último pedido: p124.
+
+### L3N — 23/10/2026 (mañana)
+
+- Cartel "Resolver vínculo" (Celda_A -> Gripper en Documents\InventorIA\Generados): `l3n_fijar_refs.py` (p136) abrió
+  los 5 ensambles con el proyecto L3N activo: NINGUNA referencia fuera del proyecto ni faltante. El cartel aparece
+  si Inventor se abre con OTRO proyecto activo (usa la ruta absoluta vieja). Regla: abrir siempre con
+  `L3N_AdecoagroChivilcoy.ipj` activo (abrir_layout.py lo activa). Las copias viejas de Documents quedaron
+  renombradas: `Generados\GRIPPER_7xTBA250_origen` y `Generados\L3N_SIM_viejo` (borrables). La escena de
+  simulación (p131, 22/10 18:44) está en `C:\DEFYMOTION\L3N\InventorIA\Generados\L3N_SIM` (foto sim_v1_iso).
+- Cinta de llegada v2 (`l3n_cinta_llegada_v2.py`, p143): dos curvas de 90° con el activo de la celda B
+  (`L3N\Factory Assets\Horizontal Curve Belt Conveyor (For Asset Chains)_4E75E090...ipt`: origen = centro del arco a
+  la altura de la banda, arco en el cuadrante local +x,+y, local z = arriba; R eje 475, banda 370; usar la ruta YA
+  CARGADA en sesión del mismo nombre, si no Occurrences.Add da E_INVALIDARG). Recorrido (layout): T1 X=4363 de
+  Z=-20922 a -30054 (4 BM2000 + a medida 229), Curva_1, T2 Z=-30529 de X=3888 a -11659 (6 BM2000 + a medida
+  2193), Curva_2, T3 X=-12134 de Z=-31004 a -37021 (2 BM2000 + a medida 1566): 32,2 m. Módulos a medida =
+  `Celdas_IA\Producto\BM_a_medida_L<mm>.ipt` (volumen: bastidor 270x120 + patas). T3 pasa entre el pateador
+  (x máx -12370) y el inicio de la cinta interna (x mín -11898), banda a 800. Pateador de A centrado al eje de la
+  cinta interna (Z -36697, dz +165). Fotos v16_*. Pendiente: subir scripts nuevos al repo (desde p130 en adelante).
+  Último pedido: p146.
+- Módulos BM a medida (23/10 09:45): `bm_modulo.py --largo L --tag T` copia la familia BM2000 del proyecto a
+  `C:\DEFYMOTION\L3N\Cintas Transportadoras\BM_<tag>` renombrando todos los archivos (sufijo _<tag>) y re-apunta
+  las referencias (83 archivos, 47 refs). Parámetros de largo relevados (`relevar_params_carpeta.py`, Analisis\Cintas
+  \params_BM2000.json): Lateral der/izq d2=2000 (largo), d19=1395 (falla al editar: conducido); Deslizante Z d10=1960,
+  L d10=1555, Pi d6=1735; Estructura base 40x40-2000.ipt (esqueleto del Frame Generator) d8=1395 (largo), d6=440 es
+  HORIZONTAL (no es altura de patas: no tocar), patas = d1 250 + d5 150 vertical. Valores con p.Value (cm): Expression
+  con "." falla en locale es. Primera prueba BM_L2193: laterales crecen en sentidos opuestos (der hacia +X/motor,
+  izq hacia -X/cola), el esqueleto creció hacia -X, la banda (patrón) no se alarga y quedan bocetos visibles. Falta:
+  fijar el extremo de cola en ambos laterales, patrón de la banda por largo, altura de patas (d1/d5) + base regulable
+  (plato Ø100 + M16x100 + cubo 40x40). Hay carpetas que se llaman "*.ipt" (Ensamble Estructura base 40x40-2000.ipt):
+  filtrar con is_file(). Último pedido: p153.
+- Motorización de cintas (23/10 10:00, preliminar): cálculo tipo Intralox/Habasit BP=[(M+2W)·fw + M·fp·acum]·L·g con
+  M=15,8 kg/m (cajas 6,1 kg a lo largo, pegadas), W=1,7 kg/m (PP 6,83 kg/m² x 249), fw=0,13 (PP/UHMW), fp=0,30
+  (cartón/PP), SF 1,4, Rp 68,8 mm, v=25 m/min, η 0,8. Tramo de 15,5 m acumulado 100 %: BP 1100 N, ABP 1,54 kN
+  (6,2 kN/m contra ~14,6 kN/m nominal de un PP flat top 1"), 106 N·m en el eje, 0,57 kW. 9,1 m: 0,9 kN, 62 N·m,
+  0,34 kW. 6 m: 0,6 kN, 41 N·m, 0,22 kW. Propuesta: una banda continua por tramo recto (1 motor por tramo, en
+  cabeza), bastidor en secciones de 2,5 m abulonadas (transporte), banda enviada en rollos y unida con varillas
+  en obra; curvas con motor propio. Alternativa pedida por el usuario: módulos de 2,5 m con banda propia y
+  transmisión a cadena 1 motor cada 2 (más transferencias y motores). Falta: decisión del usuario.
+- Fichas MDC (leídas en el navegador integrado, 23/10): las fichas por serie son sólo geometría, sin resistencia,
+  peso, rozamientos ni radios. HK50 serie 1000: M1000 (HK50-M-01000, 22 % apertura, paso 50, varilla Ø6,3, alto
+  15,3, PP+PE o acetal) y M1300 (HK50-M-01300, misma banda con ruedas para acumulación -> combinable con la lisa,
+  mismos piñones); empujadores P1100/1200/1400/1250, aletas A170/A172. Piñones: Z6 Ø primitivo 100, Z10 Ø 161,
+  Z16 Ø 225 (agujero cuadrado 38,1 / 40). M2000 = con transferencia; M3000/M3300 0 % y 12 %; M4000/M4300 HS50;
+  M5000 (HC22, paso 42, agujeros colisos) y M8000 (HC2.2, paso 25,4) parecen bandas de curva (side-flex): radio
+  no indicado; M6000/M7000/M9000 paso 25,4. Con Z10 Ø161 el par del tramo de 15,5 m acumulado sube a ~124 N·m.
+  El catálogo general (94 p.) tiene texto pero no datos de bandas plásticas.
+- Cálculo propio de MDC (cotización DC 02-1224, banda con rodillos 381 x L 4,4 m, Z10, PP): peso banda 8,31 kg/m²,
+  resistencia 1332 kg (ancho 381 -> ~3500 kgf/m), μ banda-pista 0,31, μ banda-producto 0,21; F = (P+B)·0,31 +
+  (P+B)·0,21, SF 50 %. DC 02-1367: lisa 249 (desarrollos 4,8/5,3 m) y con rodillos 398 (5,6/4,4 m), "el mismo
+  piñón aplica para ambas mallas" (Z10, eje cuadrado 40). Con el método MDC, tramo de 15,5 m en 249 lisa sin
+  acumulación: ~86 kgf (129 con SF) contra ~870 kgf (1332 x 249/381): 15 %; con acumulación total ~170/254 kgf: 29 %.
+- Anchos de banda (23/10 10:30, usuario): la misma caja viaja a lo largo (156 de ancho) en la llegada y el pateador
+  la gira al entrar a la celda (386 de ancho): banda 200 en la llegada y 420 en la celda. Incremento de ancho HK50 =
+  medida A de la ficha (8,85 PP / 8,82 acetal): 381 = 43·A, 398 = 45·A, 249 ≈ 28·A. Anchos reales: 23·A = 203,5
+  (llegada) y 48·A = 424,8 (celda). A confirmar con MDC (incremento, ancho mínimo, piñones por ancho).
+- Orientación de la caja (usuario, 23/10 10:31): en B y en A la caja llega a lo largo (156 de ancho) y el pateador
+  la gira A PROPÓSITO al entrar a la celda: sobre la cinta interna va con 386 cruzado (Z) y 156 en el avance (X),
+  que es como la toman las 7 garras del gripper (paso 156 a lo largo de X) y como lo pide el patrón de paletizado.
+  `IA_Caja_en_cinta` de Celda_A estaba con 386 a lo largo de X: girada 90° (`l3n_girar_caja.py`, p154).
+  Pendiente: re-armar la escena de simulación (toma `caja_toma` de la celda). Último pedido: p154.
+- Cintas nuevas como BLOQUES DE LAYOUT (23/10, `cinta_modular.py`, p155-p170). El usuario aclara: son bloques
+  usables (layout, simulación, cotización), NO modelo de fabricación. La versión de fabricación sale de las
+  BM2000/BM1800 ya fabricadas: sólo cambia el ancho de módulos (travesaños, ejes, piñones, pistas, cruz de patas);
+  laterales y plegados se reutilizan y se encastran módulos para largar. PENDIENTE (etapa posterior): modelo 100 %
+  paramétrico que con las medidas de caja recalcule todas las cintas y largue planos.
+  `cinta_modular.py --nombre --largo --modulos n (A=8,85) --banda lisa|rodillos --producto --seccion-max 2500
+  --motor-lado der|izq --motor-adelante --baranda-hasta x --rehacer`: secciones <=2,5 m (laterales C 200 alas
+  afuera, pistas UHMW ida/retorno, travesaños, empalmes, patas 40x40 + base regulable Ø100 M16 a media carrera,
+  banda a 800), Banda.iam continua, Barandas.iam, eje cuadrado 40 + piñones Z10, UCFL, motorreductor (volumen).
+  Generadas en C:\DEFYMOTION\L3N\Celdas_IA\Cintas\: Cinta_Llegada_T1 (9132, 4 secc.), _T2 (15547, 7), _T3 (6017; la
+  usada es _T3b: motor del lado del pateador apuntando hacia afuera de la cabeza, barandas hasta 5317 para la
+  zona de empuje), Cinta_Interna_CeldaA_L4447 (48 mód. = 424,8, ruedas, 2 secc.; la de 4861 quedó sin uso).
+  `l3n_cintas_bloques.py <interna> [T3=...]` reemplazó en Cinta_Llegada_A los BM2000/a medida (curvas intactas) y
+  en Celda_A_L3N los BM2000_CeldaA_1/_2 por la interna única (mismo x0, eje Z -36697); caja de muestra centrada en
+  el eje. Pendiente: chapa puente T3 -> interna (~230 mm entre bandas, la caja mide 156 en ese sentido), verificar
+  reductor de T3 contra el pateador, re-armar la simulación. Último pedido: p170.
+- Celda A, correcciones del usuario (23/10 11:38-11:52, p171-p190):
+  - Piezas sueltas (relevadas con `relevar_puntos.py`, Analisis\celdaA_volando.json): `chapa tope derecha:1`,
+    `soporte bandejas:14/15` y `Empujador 01:1` OCULTOS (visibilidad_occ, reversible); `Gripper_ADECO2_V1_reemplazado`
+    (suprimido, del ADECO) BORRADO con `borrar_occ.py`.
+  - T3 alargado 100 mm aguas abajo (`Cinta_Llegada_T3d`, 6117, extra3=100): reductor a ~100 mm del pateador
+    (pedido: 100 mm alcanzan), motor del lado del pateador apuntando hacia afuera, barandas hasta 5317.
+  - Robot "torcido": el KUKA armado de ADECO tiene la muñeca a 46° (normal brida (0,-0.69,0.72)) y el gripper
+    estaba suelto sobre el pallet con el largo vertical. `l3n_robot_pose.py`: oculta el armado, pone IA_Robot_V01..V05
+    sueltos con phi0 = -46,457 (como la simulación, celda_kin) en pose de TOMA sobre las últimas 7 cajas de la
+    cinta interna (IK Gauss-Newton: q = 5,83 / -20,0 / -26,67, q6 = -q1), brida mirando abajo y gripper colgado
+    con el largo a lo largo de X (palas 15 mm sobre la banda). OJO armar_l3n.py --rearmar: ahora la celda tiene
+    IA_Robot_V0x y el armado oculto (adaptar para no duplicar eslabones).
+  - Cinta interna definitiva `Cinta_Interna_CeldaA_L4447c`: barandas hasta 3150 (zona de toma libre) y motor del
+    lado del robot (del lado del pallet chocaba con una columna de la reja).
+  - Pendiente: chapa puente / tope en la transferencia T3 -> interna, re-armar simulación. Último pedido: p190.
+- Llegada A, ajustes del usuario (23/10 12:23, p191-p196): la cinta Tetra termina a mitad del tramo previo a la
+  Curva_1 (marca naranja en el DWG): T1 arranca en Z -25562 (DWG x≈3833,91, estimado con la escala de la captura
+  ~10,6 mm/px; A RELEVAR) -> `Cinta_Llegada_T1b` 4492 mm (antes 9132). T2 (15547) partido en dos con motor cada
+  uno: `Cinta_Llegada_T2a` y `_T2b` de 7773,5 (motor del lado +Z del layout, afuera de la Curva_2; la unión en
+  X -3885,5 queda cabeza con cola, falta chapa de transferencia). `l3n_cintas_bloques.py` acepta `z1ini=`,
+  `t2div=`, `T1=/T2a=/T2b=/T3=` y `extra3=`. Pedido usado: `Cinta_Interna_CeldaA_L4447c T1=Cinta_Llegada_T1b
+  T2a=Cinta_Llegada_T2a T2b=Cinta_Llegada_T2b T3=Cinta_Llegada_T3d extra3=100 z1ini=-25562 t2div=2`.
+  Motores de la llegada: T1, T2a, T2b, T3 + 2 curvas = 6. Último pedido: p196.
+- Rejas, pasillo, puerta y buffers (23/10 12:42-13:10, p197-p211). LAYOUT EN PAUSA (el usuario pasa al cotizador).
+  - Pared (Paredes.ipt, medido con `medir_distancia.py`): L con cara interior a lo largo de T2 en Z -29790,2 (de
+    X -11664 a ~-2364, ahí dobla +Z) y tramo transversal X -11814,2..-11664,2 (150) que T2/Curva_2 atraviesan.
+  - Pasillo de mantenimiento (lado pared, pedido): 800 libres entre motor y pared (EN ISO 14122: mín. 600,
+    recomendado 800, 1000 si pasan varios). T2 corrido 365 mm hacia -Z: eje Z -30894 (`zt2=-30894`; las curvas se
+    corren con él). Nuevos bloques `Cinta_Llegada_T1c` 4857 y `Cinta_Llegada_T3e` 5752 (barandas hasta 4950).
+  - Reja de la cinta (`l3n_rejas_A.py A --zt2 -30894`): eje de columnas a 350 del eje de T2 (~100 mm del bastidor)
+    desde la pared hasta afuera de la Curva_1 (X 4855) y por +X de T1 hasta Z -29419 (13 + 2 bahías). Corregido:
+    los paneles "alto" estaban apoyados en el piso (ahora conservan la altura de la plantilla de B).
+  - Puerta de paso P1 (`l3n_buffers.py`): vano 900x2100 en la pared transversal (Z -30740..-29840), hoja 800 que
+    abre hacia afuera (lado T3); el motor de T2b queda adentro, a 802 de la pared. Requiere obra civil (vano).
+  - Buffers: 2 pilas de 15 pallets (2280 mm) en X -10635, Z -32274 / -33804, 4 guías 80x80 blancas H1900 por pila
+    (luz 60, por fuera del bastidor 1300x1100 del robot), placas de anclaje, 2 pórticos de soporte del riel
+    (Z -31425 y -33039). Libres: 300 a la reja de la cinta, 250 entre pilas, 222 a la reja norte interna.
+    AVISO: 15 pallets superan la altura de transporte del robot aéreo del modelo (pallet a 1528-1680): no puede
+    pasar sobre una pila llena (o el riel es más alto en la realidad, o 10 por pila). Último pedido: p211.
+- Buffers en 10 pallets por pila (23/10 13:43, p212, `l3n_buffers.py --zt2 -30894 --pallets 10`): pila de 1520 mm,
+  pasa por debajo del pallet en transporte del robot aéreo (cara inferior 1528). Para 12 haría falta el riel con
+  cara superior a ~2430 (15: ~2880). Cotizador ADECO actualizado (hoja Cintas por componentes con costos reales de
+  CITRIC, hoja Comparación CITRIC, Pendientes 14-19). Último pedido: p212.
+- Presupuesto 051-23102026.01 (23/10 14:00-18:00, sin pedidos al vigilante; p213-p215 de fotos NO llegaron al
+  caerse el puente). Google Slides 1C8zIwDERYVSsqD87rVeI1OpwMgsgsNxbYJU6Rg_1GP0 (copia de la plantilla
+  050-05062025.03 hecha por el usuario, editada con el conector de Slides): portada, objetivo, alcance,
+  características, funcionamiento, documentación, propuesta, planificación, supuestos, layout (imágenes del 3D:
+  planta y celda A, subidas al repo público como URLs raw y después borradas del branch; quedan en el historial,
+  commit bbb18a3), incluye / no incluye, "Inversión por etapas" (hoja nueva `l3n_s_etapas`, tabla `l3n_et_table`),
+  comercial, plazo y garantía, pasos, historial.
+  - Etapas (desglose informativo, NO se ofrece contratar por etapa): 1 cinta de llegada 41.610, 2 rejado 7.860,
+    3 buffers 3.680, 4 pateador 2.950, 5 celda robótica 169.816, 6 estrechadora 7.940, 7 programación 12.350 =
+    246.206 USD + IVA (cotizador: costo 167.487, Parámetros B10 = 1,40 ganancia y B11 = 0,07 impuestos directos;
+    precio = costo x 1,47 redondeado a 10, la celda absorbe el redondeo). Pago 50 % anticipo / 30 % montaje (acta)
+    / 20 % SAT (acta). Plazo 20 semanas (robot KUKA 15 desde la OC; oferta válida hasta 18/11/2026).
+  - Cotizador 1wa8Vzp9Gx3GPHY2jyp9Ojye9QTDE2LcqAq9y9oW22pE: filas nuevas 36 relé de seguridad 250 y 37 barrera
+    tipo 4 con muting 1.800 (reemplazan 2 x 1.200; antes la barrera la ponía Adecoagro, ahora la compra DEFY);
+    Pendientes 6 y 20 actualizados; Comparación CITRIC con referencias corridas bien.
+  - Decisiones del usuario sobre la propuesta: sin criterios de aceptación por ahora; matriz de responsabilidades
+    como tabla editable (`l3n_resp_table`, 14 filas) + "Supuestos del proyecto piloto" (`l3n_sup_text`: anteproyecto
+    para reservar CAPEX 2027, curvas estándar, altura del riel -> 10 pallets por buffer, inicio de T1 del plano,
+    ventana de parada se define después y no está en el plazo, cadencia a confirmar); sin ROI (no hay datos de
+    Adeco); se entregan programas fuente PLC/HMI/robot, backups, licencias y lista de repuestos; "ajustes menores"
+    90 días = reprogramación, puntos de paletizado, programa del PLC y mecanismos sin cambio físico grande
+    (soporte de sensor, detalle del gripper).
+  - Truco Slides: deleteText ALL + insertText hereda el estilo del último párrafo -> re-estilar (fontSize, DARK1,
+    bold, deleteParagraphBullets); las formas creadas quedan con size 3000000 EMU y escala -> para moverlas usar
+    scaleX/Y = tamaño/3000000, no 1. Verificar con export PDF de Drive (base64) + pdftoppm.
+  - Pendientes L3N: relevar fin de cinta Tetra, altura del riel y cadencia; cotización MDC (anchos 23 y 48
+    módulos) y curvas; precio local de la barrera; chapa puente T3->interna y T2a->T2b; re-armar simulación
+    (`armar_l3n.py --rearmar` con IA_Robot_V0x); versión de fabricación de las cintas (familia BM2000, sólo cambia
+    el ancho) y modelo 100 % paramétrico; fotos de la celda (repetir p213-p215). Último pedido: p212.
