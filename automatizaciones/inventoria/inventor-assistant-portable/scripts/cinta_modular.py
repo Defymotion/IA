@@ -52,6 +52,9 @@ def args():
     a.add_argument("--seccion-max", type=float, default=2500.0)
     a.add_argument("--carpeta", default=r"C:\DEFYMOTION\L3N\Celdas_IA\Cintas")
     a.add_argument("--sin-barandas", action="store_true")
+    a.add_argument("--motor-lado", choices=("der", "izq"), default="der", help="der = +Z local (a la izquierda del avance)")
+    a.add_argument("--motor-adelante", action="store_true", help="motor apuntando hacia afuera de la cabeza (no hacia la cinta)")
+    a.add_argument("--baranda-hasta", type=float, default=0.0, help="las barandas terminan en esta x (mm); 0 = hasta el final")
     a.add_argument("--rehacer", action="store_true")
     return a.parse_args()
 
@@ -374,16 +377,17 @@ def armar(x):
             # eje de cola (sección 1) / eje de cabeza con motor (última)
             for es_cab, xe, ruta_eje in (((False, x_cola, eje_cola),) if s == 0 else ()) + \
                                          (((True, x_cab, eje_cab),) if s == n_sec - 1 else ()):
-                ze = 30.0 if es_cab else 0.0                    # el eje motriz asoma del lado del motor (+z)
+                sm = 1.0 if x.motor_lado == "der" else -1.0
+                ze = 30.0 * sm if es_cab else 0.0               # el eje motriz asoma del lado del motor
                 poner(ens, ruta_eje, T(xe, y_eje - EJE / 2, ze), "Eje_cabeza" if es_cab else "Eje_cola")
                 for i, zp in enumerate(z_pines):
                     poner(ens, pinon, T(xe, y_eje, zp), f"Pinon_{'cab' if es_cab else 'cola'}_{i + 1}")
                 for lado, zs in (("izq", -(z_lat + T_CHAPA + 17.5)), ("der", z_lat + T_CHAPA + 17.5)):
                     poner(ens, rodam, T(xe, y_eje - 50, zs), f"Rodamiento_{'cab' if es_cab else 'cola'}_{lado}")
                 if es_cab:
-                    zr = z_lat + T_CHAPA + 35 + 75
+                    zr = (z_lat + T_CHAPA + 35 + 75) * sm
                     poner(ens, reductor, T(xe, y_eje - 65, zr), "Reductor")
-                    poner(ens, motor, T(xe - 65 - 220, y_eje, zr), "Motor")
+                    poner(ens, motor, T(xe + 65 if x.motor_adelante else xe - 65 - 220, y_eje, zr), "Motor")
             ruta = out / f"Seccion_{s + 1}.iam"
             inv._iprop(ens, "Design Tracking Properties", "Part Number", f"{x.nombre} - sección {s + 1}/{n_sec}")
             if ruta.exists():
@@ -416,7 +420,9 @@ def armar(x):
         ruta_bar = None
         if not x.sin_barandas:
             ens = nuevo_ens()
-            varilla = g.cilindro(f"Varilla_D12_L{round(L - 100):g}", 12.0, L - 100, "x", "Varilla AISI 304 Ø12 (baranda)",
+            xb = x.baranda_hasta if 0 < x.baranda_hasta < L else L - 50
+            log["barandas_hasta"] = xb
+            varilla = g.cilindro(f"Varilla_D12_L{round(xb - 50):g}", 12.0, xb - 50, "x", "Varilla AISI 304 Ø12 (baranda)",
                                  ["acero inoxidable", "acero"], centrado=False)
             poste = g.cilindro("Poste_baranda_D12_L120", 12.0, 120.0, "y", "Vástago de baranda con mordaza", ["negro", "gris oscuro"],
                                centrado=False)
@@ -424,16 +430,16 @@ def armar(x):
             z_post = z_lat + T_CHAPA + 10
             Lb = round(z_post - zg + 6)
             brazo = g.cilindro(f"Brazo_baranda_D12_L{Lb}", 12.0, Lb, "z", "Brazo de soporte de baranda", ["negro", "gris oscuro"])
-            n_p = max(2, math.ceil((L - 100) / 1200.0) + 1)
+            n_p = max(2, math.ceil((xb - 50) / 1200.0) + 1)
             for lado, zs in (("izq", -zg), ("der", zg)):
                 sg = 1 if zs > 0 else -1
                 for k, yy in enumerate((y_top + 35, y_top + 95)):
                     poner(ens, varilla, T(50, yy, zs), f"Varilla_{lado}_{k + 1}")
                     for i in range(n_p):
-                        xp = 80 + i * (L - 160) / (n_p - 1)
+                        xp = 80 + i * (xb - 130) / (n_p - 1)
                         poner(ens, brazo, T(xp, yy, sg * (zg - 6 + Lb / 2)), f"Brazo_{lado}_{k + 1}_{i + 1}")
                 for i in range(n_p):
-                    xp = 80 + i * (L - 160) / (n_p - 1)
+                    xp = 80 + i * (xb - 130) / (n_p - 1)
                     poner(ens, poste, T(xp, y_lat_top - 10, sg * z_post), f"Poste_{lado}_{i + 1}")
             ruta_bar = out / "Barandas.iam"
             if ruta_bar.exists():
