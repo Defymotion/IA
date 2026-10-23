@@ -23,11 +23,15 @@ X_T1, Z_T1_INI, Z_T2, X_T3, Z_T3_FIN = 4363.0, -20922.0, -30529.0, -12134.0, -37
 Z_EJE_INTERNA = -36697.0
 INTERNA = sys.argv[1] if len(sys.argv) > 1 else "Cinta_Interna_CeldaA"
 ALT = dict(a.split("=", 1) for a in sys.argv[2:] if "=" in a)      # p. ej. T3=Cinta_Llegada_T3b
-TRAMOS = [("T1", (X_T1, Z_T1_INI), (X_T1, Z_T2 + R)),
-          ("T2", (X_T1 - R, Z_T2), (X_T3 + R, Z_T2)),
-          ("T3", (X_T3, Z_T2 - R), (X_T3, Z_T3_FIN))]
 EXTRA3 = float(ALT.pop("extra3", "0"))      # alargue de T3 aguas abajo (más allá de la entrada a la celda)
-TRAMOS[2] = ("T3", TRAMOS[2][1], (X_T3, Z_T3_FIN - EXTRA3))
+Z1 = float(ALT.pop("z1ini", str(Z_T1_INI)))  # inicio de T1 (fin de la cinta Tetra, a relevar)
+NDIV2 = int(ALT.pop("t2div", "1"))           # T2 partido en n cintas (cada una con su motor)
+TRAMOS = [("T1", (X_T1, Z1), (X_T1, Z_T2 + R))]
+_x0, _x1 = X_T1 - R, X_T3 + R
+for _i in range(NDIV2):
+    TRAMOS.append(("T2" if NDIV2 == 1 else "T2" + "abcdefgh"[_i],
+                   (_x0 + (_x1 - _x0) * _i / NDIV2, Z_T2), (_x0 + (_x1 - _x0) * (_i + 1) / NDIV2, Z_T2)))
+TRAMOS.append(("T3", (X_T3, Z_T2 - R), (X_T3, Z_T3_FIN - EXTRA3)))
 
 app = inv._inventor(start_if_needed=False)
 tg = app.TransientGeometry
