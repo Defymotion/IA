@@ -951,3 +951,56 @@ El diseño por defecto de los grippers de 3 y 4 cajas da **idéntico** que antes
     módulos) y curvas; precio local de la barrera; chapa puente T3->interna y T2a->T2b; re-armar simulación
     (`armar_l3n.py --rearmar` con IA_Robot_V0x); versión de fabricación de las cintas (familia BM2000, sólo cambia
     el ancho) y modelo 100 % paramétrico; fotos de la celda (repetir p213-p215). Último pedido: p212.
+- Presupuesto, tarde (23/10 18:00-19:30, p213-p240): fotos tipo render del layout (`l3n_fotos_presupuesto.py`:
+  fondo blanco con esquema "Presentation" + BackgroundType 52737, luz suave, sombras, perspectiva 0,52 rad,
+  SetExtents también en perspectiva, paredes visibles sólo en las fotos que lo piden) y flechas/etiquetas con
+  Pillow (naranja = nuevo, gris = existente). Imágenes en `C:\DEFYMOTION\L3N\Presupuesto_img\` (01..04 anotadas
+  + sin_anotar\), puestas en el deck (`l3n_img_cambios`, `l3n2_img_celda`, `l3n2_img_buffers`,
+  `l3n_img_propuesta2`; createImage sólo con URL pública: se reusa el contentUrl de una imagen ya pegada).
+  Cruce con el cotizador de Córdoba (16kAUHOTIDUW8b3__QsCFINVdxTKA0YMyvS6MLQOx5rw): se agregaron estructuras de
+  pateadores/centrador/fijación, sensores reed, EtherCAT, protecciones y baliza. Barrera de salida IFM OY513S
+  (tipo 4, 4 haces, muting) en las dos columnas de reja del borde de la cama (X -7400, emisor Z -36199,8,
+  receptor Z -34873,8, Y 150..1235) con brazos de muting L600 a Y 700 sólo hacia adentro (del lado de la
+  giratoria barrerían el pallet al girar). Cotizador: COSTO 178.421 / PRECIO 262.279 USD.
+- Camas de rolos a medida (p236-p238, `l3n_camas_medida.py --ver _v2`): copia del STEP original
+  `RM8x10_800020-5500-429-19-0_B_IAD_000.step.ipt` estirada (corte en Z -1214: MoveFeature de cuerpos enteros +
+  MoveFace de las caras lejanas + rodillos Ø89 cada 150) y ensambles `Cama_rolos_400V_L{L}_v2.iam` con las patas
+  originales en `Celdas_IA\Camas_medida`; reemplazan IA_Cama_L2648_5, IA_Cama_L2920_3 e IA_Cama_L3320 en
+  Linea_Pallets (sin huecos entre camas). API: MoveFaceFeatures.CreateDefinition(caras).SetFreeMoveType(matriz);
+  MoveFeatures.CreateMoveDefinition(cuerpos).AddFreeDrag(x,y,z).
+
+### L3N — simulación completa de planta (23/10/2026 noche, p240-p252)
+
+- Relevamiento (`l3n_sim_relevar.py`, p240, ~11 min): `Analisis\L3N\sim_relevamiento.json` con matrices de layout
+  de celda A (2 niveles), línea, robot aéreo, cinta de llegada, KUKA (eslabones), gripper (módulos con su
+  restricción "Apertura" -484,73), patrón del pallet lleno (17x8, 136 cajas), giratoria A y MP402.
+- Planificador del lado de la IA (`scripts/l3n_plan_sim.py rel.json plan.json`, Python puro + celda_kin): simulación
+  por eventos (DT 5 ms) de cintas con acumulación (500 mm/s, una caja cada 1,15 s), pateador (0,55 s + 0,4 s de
+  retorno), cinta interna contra el tope, robot (ciclos: fila de 3 dejada de a una con el gripper a 90° y las
+  cajas colgadas hacia la zona libre, y 2 tomas de 7; traslados "sube-cruza-baja" a la altura mayor para no barrer
+  cajas; alturas sobre la capa ≥200 y ajuste por alcance), robot aéreo (pila 1 -> cama de ingreso, camas a 420
+  mm/s, centrador), salida (giratoria 90° en 3 s, pallet por la línea a 450 mm/s con aceleración 300, envuelto
+  MP402 6 vueltas en 30 s con el carro subiendo y bajando y 8 bandas de film, salida a X 12600), pallet 2 y
+  reciclado de las cajas del pallet 1 para seguir paletizando. Verificaciones: IK < 3 mm en todo el video, cajas
+  colgadas y gripper contra cajas apoyadas (AABB) sin choques. Tiempo de paletizado de 136 cajas ≈ 162 s de ciclos
+  (velocidades de video, no optimizadas). Guion de 9 tramos (general, pateador, aéreo ×2, capa 1 ×1, capas 2-8 ×7,
+  salida ×1,5, traslado ×8, envuelto ×3, final): 2870 cuadros a 30 fps.
+- Hallazgos para el usuario: (1) pateador a 164 mm de la caja: con 300 de carrera la caja no llega a la interna
+  (se simuló 450); (2) palas de 33,5 mm y patrón sin luz entre filas: se simularon 35 mm entre bandas y entre las 3
+  transversales (carga 998 x 1228); (3) alturas del modelo: cama celda/giratoria ~507 (rodillos), línea 626,8,
+  MP402 501,3.
+- Escena (`armar_l3n_sim.py plan.json`, p242, 8,5 min): `Documents\InventorIA\Generados\L3N_SIM2\`:
+  `L3N_SIM_Planta.iam` = SaveAs COPIA del layout + proxies móviles ocultos + 265 objetos SIM_* de primer nivel
+  (eslabones, gripper, 232 cajas, pallets, pateador, aéreo con barra telescópica de 3 tramos, deck de la
+  giratoria, rotor y carro de la MP402, film); `Gripper_SIM\` = copia del gripper con un archivo por módulo de
+  pala (cada garra abre sola; +Apertura CIERRA: signo_abre -1, abre 25 mm); `Piezas\` = film A/B y
+  `Pallet_lleno_sim.iam` (patrón con luz). Matrices del plan redondeadas a 4 decimales -> Inventor exige
+  ortonormalizar (Gram-Schmidt) o Occurrences.Add da E_INVALIDARG. La búsqueda de apariencias en las bibliotecas
+  tarda ~6 min (y no encontró "vidrio": el film quedó blanco opaco, se ve bien).
+- Render (`simular_l3n_planta.py plan --desde --hasta --paso 2 --carpeta Cuadros --sin-pantalla`; pruebas con
+  `--cuadros a,b,c` y `--prueba-giratoria th1,th2`): aplica sólo cambios; las cajas ocultas o fuera de cuadro no se
+  mueven hasta que hace falta (de 17,7 a ~6 s por cuadro: cada Transformation de una ocurrencia visible en la
+  escena de planta cuesta ~0,18 s). Giratoria: th 0 = transporta en Z (hacia B), 90 = hacia la celda/MP402
+  (verificado con fotos en planta). Primero cuadros pares (video a 15 fps) y después impares. plan_l3n_v2.json =
+  cámara nueva del pateador (desde el SO). Pedidos: p249 (0-999), p250 (1000-1999), p251 (2000-2869), p252
+  (180-359 con v2), todos paso 2. Leyendas y reloj se agregan en la nube (`l3n_rotular_cuadros.py`).
