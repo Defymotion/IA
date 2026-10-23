@@ -26,6 +26,8 @@ ALT = dict(a.split("=", 1) for a in sys.argv[2:] if "=" in a)      # p. ej. T3=C
 EXTRA3 = float(ALT.pop("extra3", "0"))      # alargue de T3 aguas abajo (más allá de la entrada a la celda)
 Z1 = float(ALT.pop("z1ini", str(Z_T1_INI)))  # inicio de T1 (fin de la cinta Tetra, a relevar)
 NDIV2 = int(ALT.pop("t2div", "1"))           # T2 partido en n cintas (cada una con su motor)
+Z_T2_BASE = Z_T2
+Z_T2 = float(ALT.pop("zt2", str(Z_T2)))      # eje de T2 (las curvas se corren con él)
 TRAMOS = [("T1", (X_T1, Z1), (X_T1, Z_T2 + R))]
 _x0, _x1 = X_T1 - R, X_T3 + R
 for _i in range(NDIV2):
@@ -68,6 +70,22 @@ try:
     # ---------------------------------------------------------------- 1. cinta de llegada
     cin = abrir(CINTA)
     cd = cin.ComponentDefinition
+    # eje actual de T2 (origen de los bloques sobre el eje de la banda) -> corrimiento de las curvas
+    z_act = Z_T2_BASE
+    for o in inv._items(cd.Occurrences):
+        if o.Name.startswith("Cinta_Llegada_T2"):
+            z_act = round(o.Transformation.Translation.Z * 10 + ORG_A[2], 1)
+            break
+    dz = Z_T2 - z_act
+    log["T2_eje"] = {"antes": z_act, "despues": Z_T2, "dz_curvas": round(dz, 1)}
+    if abs(dz) > 0.5:
+        for o in inv._items(cd.Occurrences):
+            if o.Name.startswith("Curva_"):
+                m = o.Transformation
+                m.SetTranslation(tg.CreateVector(m.Translation.X, m.Translation.Y, m.Translation.Z + dz / 10), False)
+                S(lambda: setattr(o, "Grounded", False))
+                o.SetTransformWithoutConstraints(m)
+                S(lambda: setattr(o, "Grounded", True))
     borradas = []
     for o in list(inv._items(cd.Occurrences)):
         n = o.Name

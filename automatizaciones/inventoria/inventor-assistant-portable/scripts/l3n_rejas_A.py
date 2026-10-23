@@ -3,7 +3,8 @@ paneles 03 de 1240 x 900 en dos alturas), RESPETANDO el área de cercamiento pla
 (las líneas de las "Puerta estándar" genéricas de 2262 de alto, que chocaban con el riel del robot aéreo).
 Líneas (relativas a la giratoria de la celda, mm): sur z -2905 (x -5127..-859), este x -935 (z -2981..-695),
 norte interna z +866 (x -5127..-859), norte lejana z +4518 (x -5215..+1796). Lado oeste abierto (entra la cinta).
-Edita Celda_A_L3N.iam / Celda_C_existente.iam (archivos propios). Uso: python l3n_rejas_A.py [A|C]
+En A (23/10) la norte lejana se reemplaza por la reja que protege la cinta T2 hasta la Curva_1 (ver LINEAS).
+Edita Celda_A_L3N.iam / Celda_C_existente.iam (archivos propios). Uso: python l3n_rejas_A.py [A|C] [--zt2 Z]
 """
 import atexit
 import json
@@ -27,6 +28,17 @@ LINEAS = [  # (nombre, p0, p1) en (x, z) relativos a la giratoria
     ("Norte_interna", (-5127.0, 866.0), (-859.0, 866.0)),
     ("Norte_lejana", (-5215.0, 4518.0), (1796.0, 4518.0)),
 ]
+if CUAL == "A":
+    # 23/10: la reja norte lejana pasa a proteger la cinta de llegada T2: a 100 mm del bastidor (eje de columnas a
+    # 350 del eje de T2), desde la pared (cara este X -11664) hasta la Curva_1, y la rodea por afuera junto a T1.
+    ORG = (-6503.2, -35622.3)
+    Z_T2 = float(sys.argv[sys.argv.index("--zt2") + 1]) if "--zt2" in sys.argv else -30894.0
+    zf = Z_T2 - 350.0 - ORG[1]
+    x_ini = -11664.0 + 90.0 - ORG[0]                 # columna apoyada contra la pared
+    x_esq = 4363.0 + 302.0 + 100.0 + 90.0 - ORG[0]   # afuera del motor de T1 (+X)
+    z_fin = Z_T2 + 475.0 + 1000.0 - ORG[1]           # pasando la curva y el motor de T1
+    LINEAS[3] = ("Cinta_T2", (x_ini, zf), (x_esq, zf))
+    LINEAS.append(("Cinta_C1", (x_esq, zf), (x_esq, z_fin)))
 app = inv._inventor(start_if_needed=False)
 atexit.register(lambda: S(lambda: setattr(app, "SilentOperation", False)))
 app.SilentOperation = True
@@ -98,7 +110,7 @@ def poner(clave, cx, cz, nombre):
     t = T[clave]
     M = [r[:] for r in t["M"]]
     M[0][3] += cx - t["cen"][0]
-    M[1][3] += 0.0 - t["cen"][1]
+    M[1][3] += 0.0 - T["col"]["y0"]          # la columna apoya en el piso; los paneles conservan su altura
     M[2][3] += cz - t["cen"][2]
     o = acd.Occurrences.Add(t["archivo"], mmake(M))
     S(lambda: setattr(o, "Name", nombre))
@@ -107,6 +119,7 @@ def poner(clave, cx, cz, nombre):
 
 
 detalle = []
+cols_puestas = []
 for nombre, p0, p1 in LINEAS:
     dx, dz = p1[0] - p0[0], p1[1] - p0[1]
     L = math.hypot(dx, dz)
@@ -115,7 +128,11 @@ for nombre, p0, p1 in LINEAS:
     paso = L / nb
     ux, uz = dx / L, dz / L
     for i in range(nb + 1):
-        poner("col", p0[0] + ux * paso * i, p0[1] + uz * paso * i, f"Reja_{nombre}_col_{i + 1}")
+        cx, cz = p0[0] + ux * paso * i, p0[1] + uz * paso * i
+        if any(abs(cx - a) < 1 and abs(cz - b) < 1 for a, b in cols_puestas):
+            continue                               # esquina compartida con la línea anterior
+        cols_puestas.append((cx, cz))
+        poner("col", cx, cz, f"Reja_{nombre}_col_{i + 1}")
     for i in range(nb):
         sm = paso * (i + 0.5)
         cx, cz = p0[0] + ux * sm, p0[1] + uz * sm
