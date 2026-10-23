@@ -26,6 +26,8 @@ ALT = dict(a.split("=", 1) for a in sys.argv[2:] if "=" in a)      # p. ej. T3=C
 TRAMOS = [("T1", (X_T1, Z_T1_INI), (X_T1, Z_T2 + R)),
           ("T2", (X_T1 - R, Z_T2), (X_T3 + R, Z_T2)),
           ("T3", (X_T3, Z_T2 - R), (X_T3, Z_T3_FIN))]
+EXTRA3 = float(ALT.pop("extra3", "0"))      # alargue de T3 aguas abajo (más allá de la entrada a la celda)
+TRAMOS[2] = ("T3", TRAMOS[2][1], (X_T3, Z_T3_FIN - EXTRA3))
 
 app = inv._inventor(start_if_needed=False)
 tg = app.TransientGeometry
