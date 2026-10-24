@@ -94,13 +94,24 @@ def abrir(p, visible=True):
     return d or app.Documents.Open(str(p), visible)
 
 
+_TOP = {}
+_SUBS = {}
+
+
 def proxy(top_cd, ruta):
+    """Ocurrencia por ruta 'A:1/B:1/C:1' (con caché de los hijos ya listados)."""
+    if not _TOP:
+        _TOP.update({o.Name: o for o in its(top_cd.Occurrences)})
     partes = ruta.split("/")
-    o = next((o for o in its(top_cd.Occurrences) if o.Name == partes[0]), None)
+    o = _TOP.get(partes[0])
+    clave = partes[0]
     for p in partes[1:]:
         if o is None:
             return None
-        o = next((h for h in its(o.SubOccurrences) if h.Name == p), None)
+        if clave not in _SUBS:
+            _SUBS[clave] = {h.Name: h for h in its(o.SubOccurrences)}
+        o = _SUBS[clave].get(p)
+        clave += "/" + p
     return o
 
 
