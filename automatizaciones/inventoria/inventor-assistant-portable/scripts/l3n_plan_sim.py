@@ -151,17 +151,38 @@ def poses(q):
     return K.poses(CFG, q[0], q[1], q[2], q[3])
 
 
+def codo(q):
+    """Seno (con signo) del ángulo entre hombro->muñeca y hombro->codo en el plano del brazo: > 0 codo ARRIBA."""
+    T2 = K.rot_z(q[1], K.A2)
+    T3 = K.mmul(T2, K.rot_z(q[2], K.A3))
+    a3 = apply(T2, (K.A3[0], K.A3[1], 0.0))
+    w = apply(T3, (K.W[0], K.W[1], 0.0))
+    ax, ay = w[0] - K.A2[0], w[1] - K.A2[1]
+    bx, by = a3[0] - K.A2[0], a3[1] - K.A2[1]
+    return (ax * by - ay * bx) / (math.hypot(ax, ay) * math.hypot(bx, by))
+
+
+CODO_MIN = 0.12            # codo arriba con margen (brazo no estirado ni invertido)
+ESTAD = {"codo_abajo": 0}
+
+
 def q_for_gripper(Mg, qprev):
-    """Ángulos para que el gripper quede en la matriz Mg (sólo giro sobre Y + traslación)."""
+    """Ángulos para que el gripper quede en la matriz Mg (sólo giro sobre Y + traslación), SIEMPRE con el codo arriba."""
     F = apply(Mg, BRIDA_G)
     q3, e = ik(F, qprev)
-    if e > 0.2:
-        for seed in ([qprev[0], -40.0, 90.0], [qprev[0], -70.0, 130.0], [qprev[0], -20.0, 60.0], q3):
+    if e > 0.2 or codo(q3) < CODO_MIN:
+        mejor = (q3, e) if codo(q3) >= CODO_MIN else (q3, 1e9)
+        for seed in ([qprev[0], -40.0, 90.0], [qprev[0], -60.0, 115.0], [qprev[0], -20.0, 60.0], [qprev[0], -75.0, 130.0],
+                     [qprev[0], 0.0, 20.0], [qprev[0], -50.0, 70.0]):
             q3b, eb = ik(F, seed)
-            if eb < e:
-                q3, e = q3b, eb
-            if e < 0.05:
+            if codo(q3b) >= CODO_MIN and eb < mejor[1]:
+                mejor = (q3b, eb)
+            if mejor[1] < 0.05:
                 break
+        if mejor[1] < 1e8:
+            q3, e = mejor
+        else:
+            ESTAD["codo_abajo"] += 1
     psi = yaw_of(Mg)
     q6 = psi - PSI_G0 - q3[0]
     # continuidad de q6
@@ -376,12 +397,56 @@ def subir(p, dy):
 
 
 AJUSTES = []
+# obstáculos fijos (cajas del relevamiento) para el gripper y las cajas que cuelgan al dejar la fila de 3
+REJA_N_DZ = 0.0 if any(e['n'].startswith('Reja_Norte_aereo') for e in REL['celda_A']) else 150.0   # ya movida en el layout?
+ESTATICOS = []
+for _k in ("celda_A", "aereo", "linea", "cinta_llegada"):
+    for _e in REL[_k] or []:
+        _c = list(_e["c"] or [])
+        if not _c or _c == [0.0] * 6 or _e["vis"] is False or "/" in _e["n"]:
+            continue
+        if _e["n"].startswith(("IA_", "KUKA", "Riel", "00.Ensamblaje Mesa", "roller conveyor", "Pasarela", "Cinta_Llegada_A",
+                               "chapa tope", "soporte bandejas", "Empujador 01", "Carro", "Torre", "Barra", "Sujecion",
+                               "Pallet_en", "Columna_1", "Travesano_1", "Paredes")):
+            continue
+        if _e["n"].startswith("Cinta_Interna"):
+            _c[4] = 800.0                                  # bastidor y banda (cara superior 800)
+            ESTATICOS.append(("Cajas_en_cola_interna", [_c[0], 800.0, Z_INT - 193.0, _c[3], 949.0, Z_INT + 193.0]))
+        if _e["n"].startswith("Reja_Norte_interna") or ("receptor" in _e["n"] and _e["n"].startswith("Barrera")):
+            _c[2] += REJA_N_DZ
+            _c[5] += REJA_N_DZ
+        if _e["n"].startswith(("Barrera_brazo", "Barrera_sensor")) and _c[1] > 650:
+            _c[1] -= 140.0                               # muting a la altura del pallet (l3n_ajustes_sim.py E)
+            _c[4] -= 140.0
+        if _e["n"] in ("Reja_Norte_interna_col_2", "Reja_Norte_interna_panel_alto_1", "Reja_Norte_interna_panel_alto_2"):
+            continue                                       # tramo bajado a 1400 bajo el robot aéreo (F)
+        ESTATICOS.append((_e["n"], _c))
+
+
+def _bb(M, xs, ys, zs):
+    pts = [apply(M, (x, y, z)) for x in xs for y in ys for z in zs]
+    return [min(p[i] for p in pts) for i in range(3)] + [max(p[i] for p in pts) for i in range(3)]
+
+
+def choca_estatico(Mg, garras, holgura=15.0):
+    """Nombre del obstáculo fijo que tocan el gripper o las cajas que todavía cuelga (garras), o None."""
+    objs = [_bb(Mg, (GRIP_LOCAL[0], GRIP_LOCAL[3]), (GRIP_LOCAL[1], GRIP_LOCAL[4]), (GRIP_LOCAL[2], GRIP_LOCAL[5]))]
+    objs += [_bb(mm(Mg, LB[g_]), (-193, 193), (0, 149), (-78, 78)) for g_ in garras]
+    for bb in objs:
+        for n_, c in ESTATICOS:
+            if all(bb[i] < c[3 + i] + (5.0 if i == 1 else holgura) and c[i] - (5.0 if i == 1 else holgura) < bb[3 + i]
+                   for i in range(3)):
+                return n_
+    return None
+ORDEN_G3 = (6, 5, 4)      # fila de 3: deja primero la garra del extremo; las que quedan cuelgan hacia adentro
 LIFT_MIN = 200.0          # cajas colgando: su base debe pasar 50 mm sobre las ya apoyadas (149 de alto)
 
 
 def alcanza(p, q0=(0.0, -40.0, 90.0, 0.0)):
-    _, e = q_for_gripper(gripper_pose(*p), list(q0))
-    return e < 0.3
+    n0 = ESTAD["codo_abajo"]
+    q, e = q_for_gripper(gripper_pose(*p), list(q0))
+    ESTAD["codo_abajo"] = n0
+    return e < 0.3 and codo(q) >= CODO_MIN + 0.03
 
 
 def arriba(p, dy):
@@ -425,7 +490,7 @@ boxes = [Box(i) for i in range(N_POOL)]
 path_q, int_q = [], []          # cajas en la cinta de llegada / interna (frente primero)
 pos = {}                        # idx -> s o x actual
 vel = {}                        # idx -> velocidad actual (para registrar cambios)
-src_next, src_i = -70.0, 0
+src_next, src_i = -58.0, 0
 kick = None                     # (idx, t0)
 pat_events = []                 # (t0, t1) del pateador
 robot_cycles = []               # lista de dicts
@@ -488,16 +553,26 @@ def plan_ciclo(t, n, layer, kind, targets):
         orden = sorted(targets, key=lambda b: b["p"][0])
         orden = [orden[0], orden[2], orden[1]]               # extremos primero, la del medio al final
         prev = segs[-1].b
-        for k, (b, g_) in enumerate(zip(orden, [4, 5, 6])):
-            Mb = pat_world(b)
-            cand = []
-            for flip in (0, 1):
-                Mb2 = mm(Mb, roty(180.0)) if flip else Mb
-                Mg = gripper_para_caja(Mb2, g_)
-                ydir = [Mg[0][1], Mg[1][1], Mg[2][1]]          # Y local del gripper (sentido de las garras)
-                cand.append((ydir[2] * z_libre, Mg, Mb2))
-            cand.sort(key=lambda c: -c[0])
-            _, Mg, Mb2 = cand[0]
+        # orientación ÚNICA para las 3 dejadas (sin giros de 180° entre dejadas, que barren las rejas con las cajas
+        # colgadas): se prueban las dos y se elige la que alcanza y no toca obstáculos fijos; preferencia z_libre
+        opciones = []
+        for flip in (0, 1):
+            planes, ok, pref = [], True, 0.0
+            for k, (b, g_) in enumerate(zip(orden, ORDEN_G3)):
+                Mb2 = mm(pat_world(b), roty(180.0)) if flip else pat_world(b)
+                Mg_c = gripper_para_caja(Mb2, g_)
+                pref = Mg_c[2][1] * z_libre
+                restantes = list(ORDEN_G3[k + 1:])
+                if not (alcanza(org_de(Mg_c)) and alcanza(subir(org_de(Mg_c), LIFT_MIN))) or choca_estatico(Mg_c, restantes):
+                    ok = False
+                planes.append((Mg_c, Mb2))
+            opciones.append((ok, pref, planes))
+        opciones.sort(key=lambda o: (not o[0], -o[1]))
+        if not opciones[0][0]:
+            AJUSTES.append(("fila3_sin_opcion", layer["capa"], [choca_estatico(p[0], []) for p in opciones[0][2]]))
+        planes = opciones[0][2]
+        for k, (b, g_) in enumerate(zip(orden, ORDEN_G3)):
+            Mg, Mb2 = planes[k]
             pl = org_de(Mg)
             ab = arriba(pl, LIFT if k == 0 else LIFT_MIN)
             arco = max(0.0, (STACK_TOP[0] + 420.0) - ab[1][1]) + 120.0 if k == 0 else 0.0
@@ -529,12 +604,12 @@ prog_i = 0
 cyc_act = None
 
 # ---- robot aéreo y pallets (tiempos absolutos)
-Z_PILA1, X_PILA = -32274.0, -10635.0
+Z_PILA1, X_PILA = aereo['Pila1_pallet_10']['M'][2][3], aereo['Pila1_pallet_10']['M'][0][3]   # relevado
 Z_PARK = -33039.0
 X_CARRO = -10582.0
 Z_CARRO0 = -36100.0                    # z del carro en el modelo
 Z_DEP = (-36438.8 + -34940.4) / 2
-Y_PAL_TOP_PILA = [1368.0 + 152.0, 1216.0 + 152.0]      # pallet 10 y 9 de la pila 1
+Y_PAL_TOP_PILA = [aereo['Pila1_pallet_10']['M'][1][3] + 152.0, aereo['Pila1_pallet_9']['M'][1][3] + 152.0]   # pallet 10 y 9
 AER = []                    # tramos (t0, t1, campo, a, b)
 
 
@@ -764,7 +839,10 @@ while t < T_FIN:
     # pateador
     if kick is None and path_q and pos[path_q[0]] >= L_PATH - 0.01:
         tail_ok = (not int_q) or pos[int_q[-1]] >= X_PAT_FIN + CAJA[2] + 2.0
-        if tail_ok:
+        # el pateador dosifica: sólo deja pasar las cajas de la toma pendiente y de la siguiente (3+7, 7+7, 7+3)
+        idx = prog_i if (cyc_act is None or cyc_act["cajas"] is not None) else prog_i - 1
+        cupo = sum(PROG[j][0] for j in range(idx, min(idx + 2, len(PROG))))
+        if tail_ok and len(int_q) < cupo:
             b = path_q.pop(0)
             boxes[b].key(t, "path", L_PATH)
             boxes[b].key(t, "kick", t)
@@ -1013,6 +1091,11 @@ OCULTAR = ["Paredes:1"] + [CELDA_P + n_ for n_ in ("IA_Robot_V02", "IA_Robot_V03
                                     "IA_Pallet_TBA250", "IA_Caja_en_cinta")]
 OCULTAR += [CELDA_P + "Ensamble pateador adeco:1/" + n_ for n_ in PAT_PIEZAS]
 OCULTAR += [CELDA_P + "roller conveyor - rotating:1/" + GIR_DECK["n"]]
+# robot armado del layout (quedaba quieto junto al que se mueve) y piezas sueltas que el layout tenía ocultas
+OCULTAR += [CELDA_P + n_ for n_ in ("KUKA-KR_140_R3200_2_PA-ASM:1", "chapa tope derecha:1", "soporte bandejas:14",
+                                    "soporte bandejas:15", "Empujador 01:1")]
+OCULTAR += [CELDA_P + n_ for n_ in ("Reja_Norte_interna_col_2", "Reja_Norte_interna_panel_alto_1",
+                                    "Reja_Norte_interna_panel_alto_2")]          # tramo bajado a 1400 bajo el robot aéreo
 OCULTAR += [AEREO_P + n_ for n_ in ("Carro", "Torre_elevacion", "Barra_elevacion", "Sujecion_pallet", "Pallet_en_sujecion")]
 OCULTAR += [LINEA_P + "MP402:1/MP402_Rotor:1", LINEA_P + "MP402:1/MP402_Carro:1"]
 PROXY_DIN = {AEREO_P + "Pila1_pallet_10": PALLETS["SIM_Pallet_1"]["t_agarra"],
@@ -1096,8 +1179,8 @@ SEG_V = [
     ("general", -12.0, -6.0, 1.0, [(0.0, (21000, 26000, -16000), (-3500, 0, -38500), 38000),
                                    (1.0, (2500, 8000, -28500), (-8200, 600, -35800), 13500)],
      "Planta Las Tres Niñas · Celda A de paletizado (nueva)"),
-    ("pateador", -6.0, 0.0, 1.0, [(0.0, (-14500, 4600, -39700), (-12100, 800, -36400), 4600),
-                                  (1.0, (-14300, 4300, -39500), (-11900, 800, -36500), 4200)],
+    ("pateador", -6.0, 0.0, 1.0, [(0.0, (-13900, 5300, -38300), (-12050, 800, -36600), 4200),
+                                  (1.0, (-13700, 5000, -38200), (-11850, 800, -36650), 3900)],
      "Cinta de llegada → pateador → cinta interna (acumula contra el tope)"),
     ("aereo", 0.0, 17.0, 2.0, [(0.0, (-2500, 6500, -29000), (-10300, 1200, -33800), 9500),
                                (0.55, (-2800, 6200, -29800), (-10000, 1000, -34800), 9000),

@@ -1004,3 +1004,27 @@ El diseño por defecto de los grippers de 3 y 4 cajas da **idéntico** que antes
   (verificado con fotos en planta). Primero cuadros pares (video a 15 fps) y después impares. plan_l3n_v2.json =
   cámara nueva del pateador (desde el SO). Pedidos: p249 (0-999), p250 (1000-1999), p251 (2000-2869), p252
   (180-359 con v2), todos paso 2. Leyendas y reloj se agregan en la nube (`l3n_rotular_cuadros.py`).
+- Correcciones pedidas por el usuario sobre el primer video (24/10 00:54) y resueltas (p256-p270):
+  1. El pateador empujaba las cajas contra la columna 1b del pórtico 1 del robot aéreo (estaba sobre la cinta
+     interna). `l3n_ajustes_sim.py` (p260, respaldos *_antes_ajustes_sim.iam): pórtico 1 a Z -37500 (columna 1b en X
+     -11700, travesaño nuevo L2233 en Celdas_IA\Ajustes_sim), y además lo que mostraron los chequeos de choques:
+     travesaño del pórtico de buffer 2 -> 2 ménsulas (la sujeción del pallet pasaba por él), buffers +53 mm en X
+     (centrados con los rieles, X -10582), reja norte interna + receptor IFM +150 en Z (la fila de 3 del lado norte
+     necesita ~312 mm), brazos/sensores de muting a Y 560, y el tramo de reja norte bajo el robot aéreo bajado a
+     1400 (columna 2 y paneles altos 1-2 ocultos; poste y paneles nuevos): el pallet colgado (1528) cruzaba la reja
+     de 1955. ALTURA 1400 A VALIDAR CON SEGURIDAD.
+  2. El robot esperaba la cinta interna llena: ahora el pateador dosifica (sólo pasan las cajas de la toma
+     pendiente y la siguiente: 3+7, 7+7, 7+3) y la llegada acumula.
+  3. Robot duplicado: el KUKA armado (KUKA-KR_140_R3200_2_PA-ASM:1) que el layout tenía oculto volvía a verse en la
+     copia (la visibilidad de proxies no persiste al reabrir); se oculta desde el plan (`ocultar`), igual que
+     chapa tope, soportes de bandejas y Empujador 01.
+  4. Codo abajo: el IK caía en la solución de codo abajo al borde del alcance (capa 7, filas lejanas). Ahora
+     `q_for_gripper` exige codo arriba con margen (seno ≥ 0,12) y `alcanza()` también; fila de 3 con orientación
+     única para las 3 dejadas (sin giros de 180° que barrían las rejas), deja primero la garra 6 (las que quedan
+     cuelgan hacia adentro) y se elige la orientación que alcanza y no toca obstáculos fijos (relevamiento).
+  Chequeos (en la nube, sin Inventor): codo mínimo 0,49, IK < 0,05 mm, sin choques gripper/cajas contra cajas
+  apoyadas ni contra obstáculos fijos, robot aéreo sin choques. Paletizado del pallet 1: ~167 s (184 en el reloj).
+  Plan `Generados\L3N_SIM2\plan_l3n_v3.json` (2860 cuadros), render en `Cuadros_v3` (p265-p267 pares, p268-p270
+  impares). Con Inventor recién abierto el render baja a ~2,7 s por cuadro (antes 6-12: Inventor cargado de
+  horas). Si el usuario cierra todo: abrir vigilante.bat (Explorador, scripts\vigilante.bat) y pedir
+  `abrir_layout.py <ipj> <layout>` para levantar Inventor con el proyecto L3N. Último pedido: p270.

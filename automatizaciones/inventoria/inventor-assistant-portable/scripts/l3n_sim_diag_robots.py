@@ -24,13 +24,14 @@ def caja(o):
 
 
 def rec(occs, ruta, prof):
+    """Sólo el primer nivel de Celda_A y los hijos de los ensambles de robot (rápido)."""
     for o in inv._items(occs):
         f = Path(S(lambda: o.Definition.Document.FullFileName, "") or "").name
         r = ruta + o.Name
-        if f.upper().startswith(("KR_140", "KUKA", "GRIPPER")) or "Gripper" in f:
+        if f.upper().startswith(("KR_140", "KUKA")) or "Gripper" in f or o.Name.startswith(("IA_Robot", "IA_Gripper", "KUKA")):
             out.append({"ruta": r, "f": f, "vis": S(lambda: o.Visible), "caja": caja(o)})
-        if prof < 4 and S(lambda: o.SubOccurrences.Count, 0) and not f.upper().startswith("GRIPPER"):
-            rec(o.SubOccurrences, r + "/", prof + 1)
+            if prof < 2 and f.upper().startswith("KUKA"):
+                rec(o.SubOccurrences, r + "/", prof + 1)
 
 
 app.SilentOperation = True
@@ -42,6 +43,12 @@ try:
             out.append({"ruta": o.Name, "f": f, "vis": S(lambda: o.Visible), "caja": caja(o)})
         if o.Name.startswith("Celda_A"):
             rec(o.SubOccurrences, o.Name + "/", 1)
+            bp = next((h for h in inv._items(o.SubOccurrences) if h.Name.startswith("base_principal")), None)
+            if bp is not None:
+                for h in inv._items(bp.SubOccurrences):
+                    f = Path(S(lambda: h.Definition.Document.FullFileName, "") or "").name
+                    if f.upper().startswith("KR_140"):
+                        out.append({"ruta": o.Name + "/" + bp.Name + "/" + h.Name, "f": f, "vis": S(lambda: h.Visible), "caja": caja(h)})
 finally:
     S(lambda: setattr(app, "SilentOperation", False))
 print(json.dumps(out, ensure_ascii=False, indent=0))
