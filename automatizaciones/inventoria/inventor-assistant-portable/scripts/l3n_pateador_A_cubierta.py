@@ -25,7 +25,7 @@ try:
     cel = cel or app.Documents.Open(str(CEL), False)
     cd = cel.ComponentDefinition
     occ = {o.Name: o for o in inv._items(cd.Occurrences)}
-    if "IA_Pateador_A_chapa_nueva_2_recortada" in occ:
+    if any(n_.startswith("IA_Pateador_A_chapa_nueva_2") for n_ in occ):
         log["avisos"].append("ya estaba hecho")
     else:
         pat = occ["Ensamble pateador adeco:1"]
@@ -46,8 +46,10 @@ try:
         lo = (b.MinPoint.X, b.MinPoint.Y, b.MinPoint.Z)[eje] * 10
         hi = (b.MaxPoint.X, b.MaxPoint.Y, b.MaxPoint.Z)[eje] * 10
         dst = PZ / f"{f.stem}_recortada_{int(RECORTE)}.ipt"
-        if not dst.exists():
-            pass
+        # la copia recortada quedó abierta en memoria de un intento anterior: se cierra y se recarga
+        for d_ in list(inv._items(app.Documents)):
+            if S(lambda: Path(d_.FullFileName).resolve() == dst.resolve(), False) and S(lambda: d_.ReferencingDocuments.Count, 1) == 0:
+                S(lambda: d_.Close(True))
         if sx > 0:                                    # el lado de T3 (+X de la celda) es el +eje de la pieza
             info = estirar(app, str(f), dst, eje, hi - 60.0, -RECORTE, lado=1)
         else:
@@ -67,13 +69,24 @@ try:
         m2.SetCoordinateSystem(tg.CreatePoint(M.Cell(1, 4), M.Cell(2, 4), M.Cell(3, 4)), tg.CreateVector(*ex),
                                tg.CreateVector(*ey), tg.CreateVector(*ez))
         log["ortonormal"] = [round(v, 6) for v in ex + ey + ez]
+        o = None
+        nombre_o = "IA_Pateador_A_chapa_nueva_2_recortada"
         try:
             o = cd.Occurrences.Add(str(dst), m2)
         except Exception as e:  # noqa: BLE001
-            log["avisos"].append(f"Add con matriz: {e!r}"[:200])
-            o = cd.Occurrences.Add(str(dst), tg.CreateMatrix())
-            o.Transformation = m2
-        S(lambda: setattr(o, "Name", "IA_Pateador_A_chapa_nueva_2_recortada"))
+            log["avisos"].append(f"Add de la copia recortada: {e!r}"[:200])
+        if o is None:
+            # plan B: la pieza original de ADECO corrida 32 mm hacia -X (fuera del lateral de T3)
+            sh = tg.CreateMatrix()
+            sh.SetTranslation(tg.CreateVector(-RECORTE / 10.0, 0, 0))
+            m3 = tg.CreateMatrix()
+            m3.SetCoordinateSystem(tg.CreatePoint(M.Cell(1, 4), M.Cell(2, 4), M.Cell(3, 4)), tg.CreateVector(*ex),
+                                   tg.CreateVector(*ey), tg.CreateVector(*ez))
+            m3.TransformBy(sh)
+            o = cd.Occurrences.Add(str(f), m3)
+            nombre_o = "IA_Pateador_A_chapa_nueva_2_corrida_32"
+            log["avisos"].append("se usó la pieza original corrida 32 mm hacia -X (la copia recortada no se pudo insertar)")
+        S(lambda: setattr(o, "Name", nombre_o))
         S(lambda: setattr(o, "Grounded", True))
         cel.Update()
         cel.Save()
