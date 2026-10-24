@@ -1071,3 +1071,47 @@ la luz puede ser chica (pallet más cuadrado).
   `Generados\_PARA_BORRAR_versiones_viejas_L3N` (7,7 GB) para que el usuario lo borre (la IA no borra en firme).
   Queda en `L3N_SIM2`: escena, Gripper_SIM, Piezas, plan_l3n_v4 (+meta), Cuadros_v4, Prueba7, Revision_v4 y
   Animacion\L3N_simulacion_v4_30fps.mp4 / _960.mp4.
+
+### L3N — simulación v5: celdas A y B juntas (24/10/2026 noche, p280-p318)
+
+Pedido del usuario: reciclar cuadros y aplicar las mejoras 1-5 (tiempos reales KUKA y capacidad máxima; choques de
+los eslabones del brazo, no sólo del gripper; celdas A y B juntas compartiendo robot aéreo, giratoria A/línea y MP402;
+pateador real en el CAD con carrera 300 hasta la cinta interna; toma realista: el gripper baja centrado y la pala móvil
+empuja la caja contra la fija), armar bien las rejas (los paneles se montaban sobre las columnas) y simular la celda B
+(instalada y funcionando) con la ficha "Bandeja 24x200 ml LEAF sin sorbete": exterior 313 x 161 x 130, blanca
+(liner externo blanco), 21 por capa (franja de 3 + 3 columnas de 6), 9 capas, 189 por pallet 1200 x 1000, 1320 de
+alto. B tiene dos cintas después del pateador con un freno con contador en el medio.
+Supuestos (avisados): B 1 caja cada 2,5 s; A = KR 180 R3200-2 PA (137/111/119/321 °/s), B = KR 180 R3200 PA de la
+generación anterior (105/107/114/242 °/s), aceleraciones estimadas.
+- CAD (archivos propios, con respaldo `*_antes_*.iam`):
+  - `l3n_rejas_v2.py A|C` (p289/p290) + `l3n_rejas_v2_fix_cano.py` (p295): rejas rehechas con paso 1320, paneles de
+    1240 entre columnas (luz 40) y bahías finales recortadas; tramos bajo el robot aéreo a 1400 con piezas Fademaq
+    recortadas por `estirar_pieza.py` (MoveFeature/MoveFace sobre copias; las piezas Fademaq no tienen parámetros).
+    Piezas en `Celdas_IA\Rejas_v2\`.
+  - `l3n_infeed_v5.py` (p291): pateador A +120 (con su carrera de 300 la caja entra 20 mm en la cinta interna);
+    B: pateador +150, BM2000_CeldaB_1 -339 y freno con contador (marco, cuchilla 12x160x240 que sube 40 / baja 70, y
+    sensor) en el hueco entre las dos cintas.
+  - `l3n_pateador_A_cubierta.py` (p301): la cubierta "chapa nueva 2" del pateador A tocaba 27,5 mm el lateral de T3;
+    la copia recortada no se pudo insertar (Occurrences.Add E_INVALIDARG con la copia hecha por archivo), así que se
+    oculta y se pone la pieza original corrida 32 mm hacia -X (`IA_Pateador_A_chapa_nueva_2_corrida_32`). En la
+    realidad: recortarla 32 mm.
+  - `l3n_celdaB_aereo.py` (p297): para que el robot aéreo llegue a B: tablero 11-06 corrido (-1071 X, +358 Z), reja
+    oeste y primera bahía norte de B a 1400 (columnas H1400 y paneles altos de 345), la puerta y el panel neumático
+    (chapa filtro, carcasas arriba) ocultos: HAY QUE REUBICARLOS en la planta real.
+  - OJO: lo que se oculta DENTRO de un ensamble de celda no se ve oculto en el layout (cada ensamble guarda su
+    visibilidad). `l3n_listar_ocultos.py` (p302) escribe `Analisis\L3N\ocultos_celdas.json` y el plan los repite.
+- Relevamiento: `l3n_sim_relevar.py` (p298, celda B incluida) -> `Analisis\L3N\sim_relevamiento.json`; eslabones
+  KUKA a STL (`exportar_stl.py`) -> nube de puntos `kuka_puntos.json`.
+- Planificador v5: `scripts\l3n_sim5\` (Python puro; ver su README). Capacidad máxima con cajas y pallet siempre
+  disponibles (`--capacidad-robot`): A 42,9 cajas/min (1,40 s/caja; toma de a una 9,6 s, grupo 7,1 s); B 35,8
+  cajas/min (1,67 s/caja; 11,4 / 7,9 s). Con 1 caja cada 2,5 s (24/min) manda la alimentación: pallet A en 350 s, B
+  en 452 s. Chequeos `chk5.py`: sin choques de gripper, cajas, eslabones (nube de puntos) ni robot aéreo; luz mínima
+  pala fija-caja vecina 2,7 mm (A) y 2,4 mm (B); codo ≥0,42; IK <0,05 mm.
+- Escena `armar_l3n_sim5.py` (p303) -> `Generados\L3N_SIM5\L3N_SIM5_Planta.iam`: gripper A con módulos propios
+  (restricción Apertura); gripper B = el original con sus 30 piezas móviles (pala, goma, empujes) ocultas y copiadas
+  al primer nivel (`SIM_B_PM_g_k`, se trasladan +Z local del gripper al cerrar 65,2 mm); caja B
+  `Piezas\Caja_LEAF_24x200_sin_sorbete_313x161x130.ipt`; pallets llenos A (136) y B (189).
+- Render `simular_l3n_v5.py` (garras por gripper, varias giratorias con th [0, 90] verificado con fotos para B).
+  4266 cuadros; el tramo "envuelto" A (cuadros 2677-2991) es idéntico al v4 (misma cámara, pallet, rotor, carro y
+  film; para eso la línea en X usa la Z de la estación A, -35617,06) y se copiaron los cuadros c02475-c02789 de
+  `L3N_SIM2\Cuadros_v4`. Render en `L3N_SIM5\Cuadros` (p313-p318).
