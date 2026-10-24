@@ -1,8 +1,8 @@
 """L3N: rearma las rejas de una celda (A o C) para que los paneles queden ENTRE las columnas, como se montan los Fademaq
 de la celda B: paso estándar 1320 entre columnas con el panel 03 de 1240 (10 mm de luz a cada caño de 60) y, al final
 de cada tramo, bahías cortadas a medida (panel con el mismo diseño, más angosto). Las esquinas comparten UNA columna.
-El tramo de la reja norte de A que queda bajo el recorrido del pallet del robot aéreo se arma a 1400 con piezas
-Fademaq recortadas (columna con caño de 1395 y panel alto de 345), no con bloques.
+Los tramos de las rejas norte y sur de A que quedan bajo el recorrido del pallet del robot aéreo (hacia los buffers y
+hacia la celda B) se arman a 1400 con piezas Fademaq recortadas (columna con caño de 1395 y panel alto de 345).
 Mantiene los extremos de cada tramo (columnas de la barrera IFM, pared, etc.). Respaldo: <celda>_antes_rejas_v2.iam.
 Piezas nuevas en C:\\DEFYMOTION\\L3N\\Celdas_IA\\Rejas_v2\\ (copias editadas; los originales no se tocan).
 Uso: python l3n_rejas_v2.py [A|C] [--probar]   (--probar: sólo calcula y lista, no modifica)
@@ -17,6 +17,8 @@ from pathlib import Path
 sys.stdout.reconfigure(encoding="utf-8")
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "server"))
 import inventor_mcp as inv  # noqa: E402
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from estirar_pieza import estirar  # noqa: E402
 
 S = inv._safe
 BASE = Path(r"C:\DEFYMOTION\L3N\Celdas_IA")
@@ -30,6 +32,7 @@ LUZ_CANO = 40.0               # mitad del caño (30) + luz (10)
 MIN_BAHIA = 600.0             # bahía cortada mínima; si sobra menos, se reparten las dos últimas
 AEREO_X = (-11320.0, -9840.0)  # recorrido del pallet colgado del robot aéreo (con la sujeción de 1300) en A
 H_AEREO = 1400.0
+LINEAS_AEREO = ("Norte_interna", "Sur")   # tramos que cruza el robot aéreo (hacia los buffers y hacia la celda B)
 app = inv._inventor(start_if_needed=False)
 tg = app.TransientGeometry
 log = {"celda": CUAL, "avisos": [], "lineas": []}
@@ -77,42 +80,35 @@ def bahias(L):
     return [PASO] * (n - 1) + [(PASO + r) / 2] * 2
 
 
-def param_cerca(doc, valor_mm, tol=0.6):
-    for p in its(S(lambda: doc.ComponentDefinition.Parameters.ModelParameters, None)):
-        if abs(S(lambda: p.Value, -1e9) * 10 - valor_mm) < tol:
-            return p
-    return None
-
-
 def pieza_panel(base_ipt, ancho0, alto0, ancho, alto):
-    """Copia del panel con otro ancho/alto (parámetros del modelo); devuelve la ruta o None si no se pudo."""
+    """Copia del panel Fademaq (sólido importado) estirada/acortada a ancho x alto (X = ancho, Y = alto de la pieza)."""
     nombre = f"{Path(base_ipt).stem}_L{int(round(ancho))}xH{int(round(alto))}.ipt"
     ruta = PZ / nombre
     if ruta.exists():
         return str(ruta)
-    shutil.copy2(base_ipt, ruta)
-    d = app.Documents.Open(str(ruta), False)
-    ok = True
-    for v0, v1 in ((ancho0, ancho), (alto0, alto)):
-        if abs(v0 - v1) < 0.5:
-            continue
-        p = param_cerca(d, v0)
-        if p is None:
-            log["avisos"].append(f"{nombre}: no encontré el parámetro de {v0}")
-            ok = False
-            continue
-        S(lambda: setattr(p, "Value", v1 / 10.0))
-    d.Update()
-    b = d.ComponentDefinition.RangeBox
-    medida = sorted([(b.MaxPoint.X - b.MinPoint.X) * 10, (b.MaxPoint.Y - b.MinPoint.Y) * 10, (b.MaxPoint.Z - b.MinPoint.Z) * 10])
-    log.setdefault("piezas", {})[nombre] = [round(v, 1) for v in medida]
-    d.Save()
-    d.Close(True)
-    return str(ruta) if ok else None
+    origen = base_ipt
+    info = None
+    if abs(ancho - ancho0) > 0.5:
+        info = estirar(app, origen, ruta, 0, 300.0, ancho - ancho0)
+        origen = str(ruta)
+    if abs(alto - alto0) > 0.5:
+        if origen != str(ruta):
+            info = estirar(app, origen, ruta, 1, 300.0, alto - alto0)
+        else:
+            tmp = PZ / ("_tmp_" + nombre)
+            shutil.copyfile(ruta, tmp)
+            info = estirar(app, tmp, ruta, 1, 300.0, alto - alto0)
+            S(lambda: tmp.unlink())
+    c = info["caja"] if info else None
+    ok = c is not None and abs((c[3] - c[0]) - ancho) < 2 and abs((c[4] - c[1]) - alto) < 2
+    log.setdefault("piezas", {})[nombre] = {"caja": c, "ok": ok, "avisos": info.get("avisos") if info else None}
+    if not ok:
+        log["avisos"].append(f"{nombre}: el estiramiento no dio la medida ({c})")
+    return str(ruta)
 
 
 def columna_corta(base_iam, alto):
-    """Copia de la columna (ensamble) con el caño recortado para que la columna mida 'alto'."""
+    """Copia de la columna (ensamble) con el caño acortado para que la columna mida 'alto'."""
     ruta = PZ / f"{Path(base_iam).stem}_H{int(alto)}.iam"
     if ruta.exists():
         return str(ruta)
@@ -126,27 +122,25 @@ def columna_corta(base_iam, alto):
         log["avisos"].append("no encontré el caño de la columna")
         return None
     cano_f = Path(cano.Definition.Document.FullFileName)
-    cano_l0 = (cano.RangeBox.MaxPoint.Y - cano.RangeBox.MinPoint.Y) * 10
-    alto0 = col.ComponentDefinition.RangeBox.MaxPoint.Y * 10 - col.ComponentDefinition.RangeBox.MinPoint.Y * 10
-    nuevo_cano = PZ / f"{cano_f.stem}_L{int(round(cano_l0 - (alto0 - alto)))}.ipt"
+    bd = cano.Definition.RangeBox
+    lados = [(bd.MaxPoint.X - bd.MinPoint.X) * 10, (bd.MaxPoint.Y - bd.MinPoint.Y) * 10, (bd.MaxPoint.Z - bd.MinPoint.Z) * 10]
+    eje = lados.index(max(lados))
+    lo = (bd.MinPoint.X, bd.MinPoint.Y, bd.MinPoint.Z)[eje] * 10
+    alto0 = (col.ComponentDefinition.RangeBox.MaxPoint.Y - col.ComponentDefinition.RangeBox.MinPoint.Y) * 10
+    delta = alto - alto0
+    nuevo_cano = PZ / f"{cano_f.stem}_L{int(round(max(lados) + delta))}.ipt"
     if not nuevo_cano.exists():
-        shutil.copy2(cano_f, nuevo_cano)
-        d = app.Documents.Open(str(nuevo_cano), False)
-        p = param_cerca(d, cano_l0, tol=1.0)
-        if p is None:
-            log["avisos"].append(f"caño: no encontré el parámetro de {cano_l0:.1f}")
-        else:
-            p.Value = (cano_l0 - (alto0 - alto)) / 10.0
-        d.Update()
-        d.Save()
-        d.Close(True)
-    col.SaveAs(str(ruta), True)                 # copia del ensamble y reemplazo del caño en la copia
+        info = estirar(app, str(cano_f), nuevo_cano, eje, lo + 0.4 * max(lados), delta)
+        log.setdefault("piezas", {})[nuevo_cano.name] = info
+    col.SaveAs(str(ruta), True)
     c2 = app.Documents.Open(str(ruta), False)
     for o in its(c2.ComponentDefinition.Occurrences):
         if Path(o.Definition.Document.FullFileName) == cano_f:
             o.Replace(str(nuevo_cano), False)
     c2.Update()
     c2.Save()
+    log.setdefault("piezas", {})[ruta.name] = [round(v * 10, 1) for v in (c2.ComponentDefinition.RangeBox.MinPoint.Y,
+                                                                       c2.ComponentDefinition.RangeBox.MaxPoint.Y)]
     c2.Close(True)
     return str(ruta)
 
@@ -161,6 +155,8 @@ try:
     cols, panels = {}, {}
     plantilla = {}
     for o in rejas:
+        if not S(lambda: o.Visible, True):
+            continue                                   # ocultas (p. ej. el tramo reemplazado bajo el robot aéreo)
         m = re.match(r"Reja_(.+?)_col_(\d+)$", o.Name)
         mp = re.match(r"Reja_(.+?)_panel_(bajo|alto)_(\d+)$", o.Name)
         f = S(lambda: o.Definition.Document.FullFileName, "")
@@ -192,6 +188,9 @@ try:
         ejeX = (max(p[0] for p in pts) - min(p[0] for p in pts)) >= (max(p[1] for p in pts) - min(p[1] for p in pts))
         pts.sort(key=lambda p: p[0] if ejeX else p[1])
         LIN[nombre] = {"eje": "X" if ejeX else "Z", "p0": list(pts[0]), "p1": list(pts[-1]), "n_cols": len(pts)}
+        log.setdefault("columnas_actuales", {})[nombre] = [(o.Name, [round(v, 1) for v in p]) for o, p in
+                                                           sorted(zip(lst, [((caja(o)[0] + caja(o)[3]) / 2, (caja(o)[2] + caja(o)[5]) / 2) for o in lst]),
+                                                                  key=lambda t: t[1][0] if ejeX else t[1][1])]
     # esquinas: extremos de dos líneas perpendiculares a menos de 200 mm -> una sola columna en la intersección
     nombres = list(LIN)
     for i in range(len(nombres)):
@@ -201,12 +200,31 @@ try:
                 continue
             ax, bz = (a, b) if a["eje"] == "X" else (b, a)       # ax: línea a lo largo de X (z fija); bz: a lo largo de Z
             esquina = (bz["p0"][0], ax["p0"][1])
+            hecho = False
             for la in ("p0", "p1"):
                 for lb in ("p0", "p1"):
-                    if math.dist(ax[la], esquina) < 200 and math.dist(bz[lb], esquina) < 200:
+                    if not hecho and math.dist(ax[la], esquina) < 200 and math.dist(bz[lb], esquina) < 200:
                         ax[la] = [esquina[0], esquina[1]]
                         bz[lb] = [esquina[0], esquina[1]]
+                        hecho = True
                         log["avisos"].append(f"esquina {nombres[i]}/{nombres[j]} unificada en {[round(v, 1) for v in esquina]}")
+            # columna de esquina compartida: un extremo en la esquina y el otro tramo termina a menos de una bahía
+            for (P, Q) in ((ax, bz), (bz, ax)):
+                if hecho:
+                    break
+                for la in ("p0", "p1"):
+                    if math.dist(P[la], esquina) < 200:
+                        for lb in ("p0", "p1"):
+                            otro = Q["p1" if lb == "p0" else "p0"]
+                            d_esq, d_otro = math.dist(Q[lb], esquina), math.dist(otro, esquina)
+                            if 200 <= d_esq <= 1400 and d_otro > d_esq:
+                                Q[lb] = [esquina[0], esquina[1]]
+                                P[la] = [esquina[0], esquina[1]]
+                                hecho = True
+                                log["avisos"].append(f"tramo {nombres[i]}/{nombres[j]} extendido hasta la esquina {[round(v, 1) for v in esquina]}")
+                                break
+                    if hecho:
+                        break
     # plan de cada línea
     plan = []
     for nombre, L in LIN.items():
@@ -223,11 +241,11 @@ try:
             a_, c_ = posts[k], posts[k + 1]
             cx, cz = (a_[0] + c_[0]) / 2, (a_[1] + c_[1]) / 2
             x0, x1 = min(a_[0], c_[0]) + LUZ_CANO, max(a_[0], c_[0]) - LUZ_CANO
-            bajo_aereo = (CUAL == "A" and nombre == "Norte_interna" and L["eje"] == "X" and x1 > AEREO_X[0] and x0 < AEREO_X[1])
+            bajo_aereo = (CUAL == "A" and nombre in LINEAS_AEREO and L["eje"] == "X" and x1 > AEREO_X[0] and x0 < AEREO_X[1])
             bays.append({"centro": (cx, cz), "ancho": round(b - 2 * LUZ_CANO), "aereo": bajo_aereo})
         post_info = []
         for k, p in enumerate(posts):
-            corto = (CUAL == "A" and nombre == "Norte_interna" and AEREO_X[0] - 90 < p[0] < AEREO_X[1] + 90)
+            corto = (CUAL == "A" and nombre in LINEAS_AEREO and AEREO_X[0] - 90 < p[0] < AEREO_X[1] + 90)
             post_info.append({"p": p, "corta": corto})
         plan.append({"linea": nombre, "eje": L["eje"], "largo": round(largo, 1), "bahias": [round(b, 1) for b in bs],
                      "posts": post_info, "bays": bays})

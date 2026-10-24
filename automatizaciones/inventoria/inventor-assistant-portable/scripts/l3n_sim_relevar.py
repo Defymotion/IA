@@ -100,6 +100,33 @@ try:
     mp = next((o for n, o in lin.items() if n.startswith("MP402")), None)
     if mp is not None:
         res["mp402"] = {"n": mp.Name, "M_layout": mread(mp.Transformation), "c": caja(mp), "hijos": lista(mp.SubOccurrences, 1, 2)}
+    # celda B (v5): primer nivel + lo que anima la simulación
+    if "Celda_B_existente:1" in occ:
+        celB = occ["Celda_B_existente:1"]
+        res["celda_B"] = lista(celB.SubOccurrences, 1, 1)
+        subB = {o.Name: o for o in inv._items(celB.SubOccurrences)}
+        extra = []
+        for nm in ("Ensamble pateador adeco:1", "roller conveyor - rotating:1", "Pallet_Completo:2", "BM2000_CeldaB_1",
+                   "BM2000_CeldaB_2"):
+            if nm in subB:
+                extra += lista(subB[nm].SubOccurrences, 1, 1, nm + "/")
+        if "ADECOAGRO2_Layout[Fademaq]:1" in subB:
+            extra += lista(subB["ADECOAGRO2_Layout[Fademaq]:1"].SubOccurrences, 1, 2, "ADECOAGRO2_Layout[Fademaq]:1/")
+        res["celda_B"] += extra
+        kb = subB.get("KUKA-KR_140_R3200_2_PA-ASM:1")
+        if kb is not None:
+            res["kuka_B"] = {"n": kb.Name, "M_layout": mread(kb.Transformation),
+                             "links": {o.Name: {"f": arch(o), "M_rel": mread(o.Transformation)} for o in inv._items(kb.Definition.Occurrences)}}
+        gb = subB.get("Gripper_ADECO2_V1:1")
+        if gb is not None:
+            gd = gb.Definition
+            b = gd.RangeBox
+            res["gripper_B"] = {"n": gb.Name, "f": arch(gb), "M_layout": mread(gb.Transformation),
+                                "caja_local": [round(v * 10, 1) for v in (b.MinPoint.X, b.MinPoint.Y, b.MinPoint.Z, b.MaxPoint.X, b.MaxPoint.Y, b.MaxPoint.Z)],
+                                "hijos": [{"n": o.Name, "f": arch(o), "M_rel": mread(o.Transformation),
+                                           "c_local": [round(v * 10, 1) for v in (o.RangeBox.MinPoint.X, o.RangeBox.MinPoint.Y, o.RangeBox.MinPoint.Z,
+                                                                                  o.RangeBox.MaxPoint.X, o.RangeBox.MaxPoint.Y, o.RangeBox.MaxPoint.Z)]}
+                                          for o in inv._items(gd.Occurrences)]}
     # camara actual para referencia
     res["n_docs_abiertos"] = app.Documents.Count
 finally:
