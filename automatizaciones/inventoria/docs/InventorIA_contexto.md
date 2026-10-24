@@ -1028,3 +1028,36 @@ El diseño por defecto de los grippers de 3 y 4 cajas da **idéntico** que antes
   impares). Con Inventor recién abierto el render baja a ~2,7 s por cuadro (antes 6-12: Inventor cargado de
   horas). Si el usuario cierra todo: abrir vigilante.bat (Explorador, scripts\vigilante.bat) y pedir
   `abrir_layout.py <ipj> <layout>` para levantar Inventor con el proyecto L3N. Último pedido: p270.
+- Video v3 entregado: `Generados\L3N_SIM2\Animacion\L3N_simulacion_v3_30fps.mp4` (95,5 s) y `_960.mp4`.
+
+### L3N — simulación v4 (24/10/2026 tarde, p271-p279)
+
+Pedidos del usuario sobre el v3: (a) 1 caja cada 2,5 s (velocidad normal de una encajonadora; más luz entre cajas
+en la cinta); (b) la columna 1b tapaba la puerta de los tableros -> correr tableros y rejas; (c) la reja sur casi
+tocaba el robot: hacen falta ≥600 mm detrás por la caída de cables -> correr todo hacia -Z; (d) orden de dejada:
+fila de 3 "derecha, medio, izquierda" (mirando desde el robot) y filas de 7 "primero la del medio y después la del
+borde", porque la pala MÓVIL tiene que abrir siempre hacia donde hay lugar; así entre cajas sólo baja la pala fija y
+la luz puede ser chica (pallet más cuadrado).
+- `l3n_relevar_palas.py` (p271, sólo lectura): pala fija x 161,7-166,5 + goma hasta 169,0 (7,3 mm en total); pala
+  móvil abierta con la goma en x 600,5 (cilindro ADN-25-80 retraído, 80 mm de carrera); la caja de 386 apoya contra
+  la goma fija (centro x local 362) y la móvil cierra 45,3 mm (en v3 la caja flotaba ~20 mm de cada pala).
+- `l3n_reja_sur.py 700` (p272, respaldo `Celda_A_L3N_antes_reja_sur.iam`): Reja_Sur_* (15 ocurrencias) y tableros
+  (Kr c4 Technologieschrank:1, 11-06:1) -700 en Z; reja este alargada con poste `Reja_Este_col_0` y paneles de 797
+  (`Celdas_IA\Ajustes_sim\Panel_reja_797x900.ipt`). Luz base del robot -> reja: 642,6 mm. Tablero 11-06 queda
+  188 mm al sur de la columna 1b (ya no le tapa la puerta). Nuevo relevamiento p273.
+- Planificador v4 (`scripts/l3n_plan_sim.py`): PASO_FUENTE 2,5 s; LUZ_PALA 10 mm (carga 1178 x 948 x 1344, dentro
+  del pallet 1200 x 1000; antes 1228 x 998); fila de 3: se elige la orientación con la garra 6 primero y las cajas
+  colgadas hacia adentro, y el sentido de avance sale de la pala móvil (+X local): extremo opuesto, medio, otro
+  extremo (capa 1: X- -> X+, que es derecha -> izquierda vista desde el robot; alterna por capa); filas de 7: banda
+  del medio primero con la pala móvil hacia el borde. Choques contra lo fijo con cajas giradas en planta (SAT, no
+  AABB); los cruces que barren rejas al girar (giros de 180° en capas alternas) giran sobre el centro del pallet o
+  en un punto libre (`cruce()`), y en los giros de ~180° se elige el sentido que mantiene el eje 6 en ±180°.
+  Chequeos: sin choques (gripper/cajas contra cajas apoyadas y contra lo fijo; luz mínima pala fija-caja vecina 2,7
+  mm), codo ≥0,42, IK <0,05 mm. Pallet 1 completo a los 347,7 s (5,5 min; el robot trabaja ~17-21 s por capa:
+  sobra capacidad). Guion: fila de 3 en primer plano ×1, resto de la capa 1 ×2, capas 2-8 ×10; 3137 cuadros.
+- Render: `simular_l3n_planta.py` usa `cierre_mm` del plan (abierta = valor del modelo -484,73 de escena.json;
+  cerrada = +45,3 mm). `l3n_sim_pallet_lleno.py plan` (p274) movió las 136 cajas de `Pallet_lleno_sim.iam` a la luz
+  nueva. Fotos de prueba en `Prueba7` (p275) y mosaicos en `L3N_SIM2\Revision_v4`. Render completo en
+  `Cuadros_v4` (p276-p279, 800 cuadros cada uno).
+- Velocidad de encajonadoras Tetra (para el usuario): A3/Flex 5000-8000 envases/h; A3/Speed hasta 26 500 envases
+  porción/h. Con 24 envases por caja: 1 caja cada 3,3-10,8 s; 2,5 s es exigente para una sola línea.
