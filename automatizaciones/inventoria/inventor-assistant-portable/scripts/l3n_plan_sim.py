@@ -1,4 +1,4 @@
-"""(Se corre del lado de la IA, sin Inventor; usa celda_kin.py) Planificador de la simulación completa L3N (Python puro, sin Inventor).
+"""Planificador de la simulación completa L3N (Python puro, sin Inventor).
 Lee sim_relevamiento.json y escribe plan_l3n.json: objetos dinámicos y, por cuadro, cámara + cambios de estado
 (matrices 3x4 en mm, visibilidad, apertura de garras). El renderizador (simular_l3n_planta.py) sólo aplica el plan.
 
@@ -223,8 +223,14 @@ def box_M(R, c_base):
 # caja tomada por la garra i (local del gripper): misma relación que la toma con palas 15 mm sobre la banda
 G_ALTO_PALA = GRIP_LOCAL[5]               # z local de la punta de las palas
 X_MED = (GRIP_LOCAL[0] + GRIP_LOCAL[3]) / 2
-# relevado con la pose de toma del layout: centro de caja en x local 388,2; base de caja 15 mm bajo la punta
-X_BOX_LOC = 388.18
+# palas (relevado del gripper, l3n_relevar_palas.py): pala fija x 161,7..166,5 + goma hasta 169,0 (7,3 mm en total);
+# pala móvil abierta con la goma en x 600,5 (ADN-25-80 retraído). La caja (386) apoya contra la goma de la pala fija:
+# centro en x local 169 + 193 = 362; la pala móvil cierra 45,5 mm hasta tocar la otra cara (x 555).
+# Base de caja 15 mm bajo la punta de las palas.
+X_PALA_FIJA_EXT = GRIP_LOCAL[0]           # 161,7: cara exterior de la pala fija
+X_GOMA_FIJA = 169.0
+X_BOX_LOC = X_GOMA_FIJA + 193.0
+CIERRE_PALA = 600.5 - (X_BOX_LOC + 193.0) - 0.2   # mm que cierra la pala móvil desde la posición del modelo
 
 
 def garra_y(i):
@@ -256,9 +262,9 @@ for e in REL["pallet_lleno"]["hijos"][1:]:
     M = e["M_rel"]
     PAT.append({"R": [r[:3] for r in M[:3]], "p": [M[0][3], M[1][3], M[2][3]]})
 CAPAS = sorted({round(b["p"][1]) for b in PAT})
-# luz entre filas para las palas: el gripper aprieta de costado y cada pala mide 33,5 mm; el patrón del modelo no
-# tiene luz entre filas, así que se abren 35 mm entre bandas (Z) y entre las 3 cajas de la fila transversal (X)
-LUZ_PALA = 35.0
+# luz entre filas: sólo la pala FIJA baja entre una caja y la vecina (7,3 mm con la goma); la pala móvil abre siempre
+# hacia el lado libre (orden de dejada). 10 mm entre bandas (Z) y entre las 3 cajas de la fila transversal (X)
+LUZ_PALA = 10.0
 for y_ in CAPAS:
     cap = [b for b in PAT if round(b["p"][1]) == y_]
     bandas = sorted({round(b["p"][2]) for b in cap})
@@ -328,14 +334,14 @@ def box_on_path(s):
 
 # ------------------------------------------------------------------ parámetros de tiempo (segundos de simulación)
 V_BANDA = 500.0                 # mm/s cinta de llegada e interna
-PASO_FUENTE = 1.15              # s entre cajas que entrega la CP
+PASO_FUENTE = 2.5               # s entre cajas que entrega la encajonadora (velocidad normal de una CP)
 GAP_ACUM = 8.0                  # luz entre cajas acumuladas
 T_PATEO, T_RETORNO = 0.55, 0.4
 CARRERA_PAT = 450.0             # recorrido de la chapa en la simulación (el modelo tiene 300: ver aviso)
 PAT_CONTACTO = 163.7            # luz entre la chapa retraída y la caja sobre T3 (relevado)
 X_PAT_FIN = X_T3 + CARRERA_PAT - PAT_CONTACTO  # centro de la caja al final del pateo
 N_POOL = 232
-T_FIN = 300.0
+T_FIN = 450.0
 
 
 # ------------------------------------------------------------------ robot: trayectorias
@@ -349,8 +355,8 @@ STACK_TOP = [PAL_O[1] + 152.0]  # altura actual de apoyo sobre el pallet (se act
 class Seg:
     """Segmento de movimiento del gripper en cartesianas: pose(t) -> (psi, origen)."""
 
-    def __init__(self, t0, dur, a, b, arco=0.0, nota=""):
-        self.t0, self.t1, self.a, self.b, self.arco, self.nota = t0, t0 + dur, a, b, arco, nota
+    def __init__(self, t0, dur, a, b, arco=0.0, nota="", giro=None):
+        self.t0, self.t1, self.a, self.b, self.arco, self.nota, self.giro = t0, t0 + dur, a, b, arco, nota, giro
 
     def pose(self, t):
         u = ease5((t - self.t0) / max(1e-6, self.t1 - self.t0))
@@ -360,6 +366,8 @@ class Seg:
             dpsi -= 360
         while dpsi < -180:
             dpsi += 360
+        if self.giro is not None:
+            dpsi = self.giro
         p = [lerp(xa[i], xb[i], u) for i in range(3)]
         p[1] += self.arco * math.sin(math.pi * u)
         return pa + dpsi * u, p
@@ -369,16 +377,86 @@ def org_de(Mg):
     return yaw_of(Mg), [Mg[0][3], Mg[1][3], Mg[2][3]]
 
 
-def mover(t, a, b, arco=0.0, vmin=0.35, nota=""):
+def dpsi_corto(a, b):
+    return ((b - a) + 180.0) % 360.0 - 180.0
+
+
+def mover(t, a, b, arco=0.0, vmin=0.35, nota="", giro=None):
     d = math.dist(a[1], b[1])
-    dpsi = abs(((b[0] - a[0]) + 180) % 360 - 180)
+    dpsi = abs(giro) if giro is not None else abs(dpsi_corto(a[0], b[0]))
     dur = max(vmin, d / VEL_CART * 1.5, dpsi / 140.0)
-    return Seg(t, dur, a, b, arco, nota)
+    return Seg(t, dur, a, b, arco, nota, giro=giro)
 
 
-def traslado(t, a, b, nota="traslado"):
-    """Sube vertical a la altura mayor de las dos, cruza horizontal (girando) y baja vertical: las cajas colgadas
-    nunca cruzan por debajo de la altura de llegada (que ya está LIFT sobre la capa)."""
+def _tramo_ok(a, b, giro, garras):
+    """Barre el tramo recto a->b girando 'giro' grados y verifica el gripper y las cajas colgadas contra lo fijo."""
+    d = math.dist(a[1], b[1])
+    n = max(4, int(d / 50.0), int(abs(giro) / 5.0))
+    for i in range(n + 1):
+        u = i / n
+        p = [lerp(a[1][k], b[1][k], u) for k in range(3)]
+        if choca_estatico(gripper_pose(a[0] + giro * u, p), garras, holgura=20.0) is not None:
+            return False
+    return True
+
+
+TRASLADOS = {"directo": 0, "desvio": 0, "sin_solucion": 0}
+
+
+def cruce(t, A, B, garras, nota):
+    """Cruce horizontal de A a B (misma altura) con el giro del gripper. Si girar en el camino barre una reja, el giro
+    se hace donde hay lugar (sobre el centro del pallet o en un punto intermedio) y se elige el sentido de giro."""
+    dc = dpsi_corto(A[0], B[0])
+    giros = [dc] + ([dc - 360.0 if dc > 0 else dc + 360.0] if abs(dc) > 150.0 else [])
+    # el eje 6 no da vueltas infinitas (KR 140 PA: ±350°): entre los dos sentidos de un giro de ~180° se prefiere el que
+    # deja el giro acumulado más cerca del de la toma
+    if PSI_U[1] is None:
+        PSI_U[0], PSI_U[1] = A[0], A[0]
+    giros.sort(key=lambda g_: abs(PSI_U[0] + g_ - PSI_U[1]))
+    res = _cruce(t, A, B, garras, nota, giros)
+    PSI_U[0] += res[1]
+    return res[0]
+
+
+PSI_U = [0.0, None]          # giro acumulado (sin envolver) del gripper y el de referencia (la primera toma)
+
+
+def _cruce(t, A, B, garras, nota, giros):
+    for g_ in giros:
+        if _tramo_ok(A, B, g_, garras):
+            TRASLADOS["directo"] += 1
+            return [mover(t, A, B, vmin=0.8, nota=nota, giro=g_)], g_
+    y = A[1][1]
+    cands = [[PAL_O[0], y, PAL_O[2]], [PAL_O[0], y, (PAL_O[2] + Z_INT) / 2]]
+    cands += [[lerp(A[1][0], B[1][0], u), y, lerp(A[1][2], B[1][2], u)] for u in (0.25, 0.5, 0.75)]
+    cands += [[PAL_O[0] + dx, y, PAL_O[2] + dz] for dx in (-400.0, 0.0, 400.0) for dz in (-500.0, 0.0, 500.0)]
+    cands.sort(key=lambda V: math.dist(A[1], V) + math.dist(V, B[1]))
+    for V in cands:
+        for g_ in giros:
+            pa_ = (A[0], V)
+            pr_ = (A[0] + g_, V)
+            # 1) gira mientras va hasta V; 2) va derecho y gira en el último tramo; 3) gira quieto en V
+            if _tramo_ok(A, pa_, g_, garras) and _tramo_ok(pr_, B, 0.0, garras):
+                s1 = mover(t, A, pr_, vmin=0.6, nota=nota, giro=g_)
+                TRASLADOS["desvio"] += 1
+                return [s1, mover(s1.t1, pr_, B, vmin=0.4, nota=nota, giro=0.0)], g_
+            if _tramo_ok(A, pa_, 0.0, garras) and _tramo_ok(pa_, B, g_, garras):
+                s1 = mover(t, A, pa_, vmin=0.4, nota=nota, giro=0.0)
+                TRASLADOS["desvio"] += 1
+                return [s1, mover(s1.t1, pa_, B, vmin=0.6, nota=nota, giro=g_)], g_
+            if _tramo_ok(A, pa_, 0.0, garras) and _tramo_ok(pa_, pr_, g_, garras) and _tramo_ok(pr_, B, 0.0, garras):
+                s1 = mover(t, A, pa_, vmin=0.4, nota=nota, giro=0.0)
+                s2 = mover(s1.t1, pa_, pr_, vmin=0.5, nota="gira", giro=g_)
+                TRASLADOS["desvio"] += 1
+                return [s1, s2, mover(s2.t1, pr_, B, vmin=0.4, nota=nota, giro=0.0)], g_
+    TRASLADOS["sin_solucion"] += 1
+    AJUSTES.append(("traslado_choca", round(t, 1), nota))
+    return [mover(t, A, B, vmin=0.8, nota=nota, giro=giros[0])], giros[0]
+
+
+def traslado(t, a, b, nota="traslado", garras=()):
+    """Sube vertical a la altura mayor de las dos, cruza horizontal (girando donde hay lugar) y baja vertical: las cajas
+    colgadas nunca cruzan por debajo de la altura de llegada (que ya está LIFT sobre la capa)."""
     yv = max(a[1][1], b[1][1])
     out = []
     if yv - a[1][1] > 5:
@@ -386,7 +464,7 @@ def traslado(t, a, b, nota="traslado"):
         out.append(Seg(t, max(0.25, (yv - a[1][1]) / 1200.0), a, p, nota="sube"))
         a, t = p, out[-1].t1
     p = (b[0], [b[1][0], yv, b[1][2]])
-    out.append(mover(t, a, p, vmin=0.8, nota=nota))
+    out += cruce(t, a, p, list(garras), nota)
     if yv - b[1][1] > 5:
         out.append(Seg(out[-1].t1, max(0.25, (yv - b[1][1]) / 1200.0), p, b, nota="baja"))
     return out
@@ -428,17 +506,48 @@ def _bb(M, xs, ys, zs):
     return [min(p[i] for p in pts) for i in range(3)] + [max(p[i] for p in pts) for i in range(3)]
 
 
+def _prisma(M, xs, ys, zs):
+    """Caja local (giro sólo en planta): (polígono XZ de 4 esquinas, y_min, y_max, AABB)."""
+    pts = [apply(M, (x, y, z)) for x in xs for y in ys for z in zs]
+    ymin, ymax = min(p[1] for p in pts), max(p[1] for p in pts)
+    pl = []
+    for p in pts:
+        q_ = (round(p[0], 3), round(p[2], 3))
+        if q_ not in pl:
+            pl.append(q_)
+    cx, cz = sum(p[0] for p in pl) / len(pl), sum(p[1] for p in pl) / len(pl)
+    pl.sort(key=lambda p: math.atan2(p[1] - cz, p[0] - cx))
+    bb = [min(p[0] for p in pts), ymin, min(p[2] for p in pts), max(p[0] for p in pts), ymax, max(p[2] for p in pts)]
+    return pl, ymin, ymax, bb
+
+
+def _sat(pl, c, h):
+    """Polígono convexo (planta) contra el rectángulo [c0,c2]-[c3,c5] agrandado h: ¿se tocan?"""
+    rx0, rz0, rx1, rz1 = c[0] - h, c[2] - h, c[3] + h, c[5] + h
+    if max(p[0] for p in pl) <= rx0 or min(p[0] for p in pl) >= rx1 or max(p[1] for p in pl) <= rz0 or min(p[1] for p in pl) >= rz1:
+        return False
+    rect = [(rx0, rz0), (rx1, rz0), (rx1, rz1), (rx0, rz1)]
+    for i in range(len(pl)):
+        ex, ez = pl[(i + 1) % len(pl)][0] - pl[i][0], pl[(i + 1) % len(pl)][1] - pl[i][1]
+        nx, nz = -ez, ex
+        a_ = [p[0] * nx + p[1] * nz for p in pl]
+        b_ = [p[0] * nx + p[1] * nz for p in rect]
+        if max(a_) <= min(b_) or max(b_) <= min(a_):
+            return False
+    return True
+
+
 def choca_estatico(Mg, garras, holgura=15.0):
-    """Nombre del obstáculo fijo que tocan el gripper o las cajas que todavía cuelga (garras), o None."""
-    objs = [_bb(Mg, (GRIP_LOCAL[0], GRIP_LOCAL[3]), (GRIP_LOCAL[1], GRIP_LOCAL[4]), (GRIP_LOCAL[2], GRIP_LOCAL[5]))]
-    objs += [_bb(mm(Mg, LB[g_]), (-193, 193), (0, 149), (-78, 78)) for g_ in garras]
-    for bb in objs:
+    """Nombre del obstáculo fijo que tocan el gripper o las cajas que todavía cuelga (garras), o None.
+    El gripper y las cajas se toman como cajas giradas en planta (no su AABB, que al girar 45° crece mucho)."""
+    objs = [_prisma(Mg, (GRIP_LOCAL[0], GRIP_LOCAL[3]), (GRIP_LOCAL[1], GRIP_LOCAL[4]), (GRIP_LOCAL[2], GRIP_LOCAL[5]))]
+    objs += [_prisma(mm(Mg, LB[g_]), (-193, 193), (0, 149), (-78, 78)) for g_ in garras]
+    for pl, y0, y1, bb in objs:
         for n_, c in ESTATICOS:
-            if all(bb[i] < c[3 + i] + (5.0 if i == 1 else holgura) and c[i] - (5.0 if i == 1 else holgura) < bb[3 + i]
-                   for i in range(3)):
+            if y0 < c[4] + 5.0 and c[1] - 5.0 < y1 and _sat(pl, c, holgura):
                 return n_
     return None
-ORDEN_G3 = (6, 5, 4)      # fila de 3: deja primero la garra del extremo; las que quedan cuelgan hacia adentro
+PALA_LOG = []             # (capa, tipo, sentido de la pala móvil, ...) para el informe
 LIFT_MIN = 200.0          # cajas colgando: su base debe pasar 50 mm sobre las ya apoyadas (149 de alto)
 
 
@@ -510,8 +619,8 @@ def build_order():
         rows7 = [b for b in cap if abs(b["R"][0][0]) < 0.5]
         zs = sorted({round(b["p"][2]) for b in rows7})
         z3 = row3[0]["p"][2]
-        # filas de 7: primero la más alejada de la fila de 3, al final la vecina
-        zs.sort(key=lambda z: -abs(z - z3))
+        # filas de 7: primero la del medio (vecina de la fila de 3, pala fija contra ella) y después la del borde
+        zs.sort(key=lambda z: abs(z - z3))
         filas = [sorted([b for b in rows7 if round(b["p"][2]) == z], key=lambda b: b["p"][0]) for z in zs]
         out.append({"capa": li, "y": y, "row3": row3, "filas": filas, "z3": z3})
     return out
@@ -537,47 +646,70 @@ def plan_ciclo(t, n, layer, kind, targets):
     s = Seg(s.t1 + 0.25, 0.45, p_pick, subir(p_pick, LIFT), nota="sube_toma"); segs.append(s)
     drops = []                                      # (t_abre, garra, M_caja_final)
     if kind == "row7":
-        tgt = [pat_world(b) for b in targets]       # ordenadas por x creciente -> garra 0..6
-        Mg = gripper_para_caja(tgt[0], 0)
+        # pala móvil (eje +X local del gripper) hacia el lado libre: lejos de la fila de 3 (la banda del medio deja
+        # la pala fija contra la fila de 3; la del borde, contra la banda del medio)
+        z_band = targets[0]["p"][2]
+        sent = 1.0 if z_band > layer["z3"] else -1.0
+        opciones = []
+        for flip in (0, 1):
+            Mbs = [mm(pat_world(b), roty(180.0)) if flip else pat_world(b) for b in targets]
+            Mg0 = gripper_para_caja(Mbs[0], 0)
+            ey = (Mg0[0][1], Mg0[1][1], Mg0[2][1])
+            Mbs.sort(key=lambda M: M[0][3] * ey[0] + M[2][3] * ey[2])          # garra 0..6 según el eje Y del gripper
+            Mg = gripper_para_caja(Mbs[0], 0)
+            pala_ok = Mg[2][0] * sent > 0.5
+            ok = alcanza(org_de(Mg)) and alcanza(subir(org_de(Mg), LIFT_MIN)) and choca_estatico(Mg, []) is None
+            opciones.append((ok, pala_ok, Mg, Mbs))
+        opciones.sort(key=lambda o: (not o[0], not o[1]))
+        ok, pala_ok, Mg, tgt = opciones[0]
+        if not (ok and pala_ok):
+            AJUSTES.append(("fila7_pala", layer["capa"], ok, pala_ok))
+        PALA_LOG.append((layer["capa"], "row7", round(z_band), "pala_movil_z" + ("+" if Mg[2][0] > 0 else "-"), ok, pala_ok))
         pl = org_de(Mg)
         ab = arriba(pl, LIFT)
-        segs += traslado(s.t1, segs[-1].b, ab)
+        segs += traslado(s.t1, segs[-1].b, ab, garras=garras)
         s = segs[-1]
         s = Seg(s.t1, 0.5, ab, pl, nota="baja_deja"); segs.append(s)
         for g_, M in zip(range(7), tgt):
             drops.append((s.t1, g_, M))
         s = Seg(s.t1 + 0.25, 0.45, pl, arriba(pl, LIFT), nota="sube_deja"); segs.append(s)
     else:
-        # fila de 3 dejada de a 1: gripper a 90°; las cajas que quedan en el gripper apuntan hacia la zona libre
-        z_libre = -1.0 if layer["z3"] > 0 else 1.0           # sentido (Z del pallet) hacia las filas de 7 vacías
-        orden = sorted(targets, key=lambda b: b["p"][0])
-        orden = [orden[0], orden[2], orden[1]]               # extremos primero, la del medio al final
+        # fila de 3 dejada de a una: un extremo, la del medio y el otro extremo. La pala móvil (+X local) apunta siempre
+        # hacia donde todavía no hay cajas, y la pala fija baja entre la caja nueva y la ya apoyada (luz LUZ_PALA).
+        # Orientación única para las 3 dejadas; las cajas que quedan colgadas, hacia las filas de 7 vacías (z_libre).
+        z_libre = -1.0 if layer["z3"] > 0 else 1.0
         prev = segs[-1].b
-        # orientación ÚNICA para las 3 dejadas (sin giros de 180° entre dejadas, que barren las rejas con las cajas
-        # colgadas): se prueban las dos y se elige la que alcanza y no toca obstáculos fijos; preferencia z_libre
         opciones = []
         for flip in (0, 1):
-            planes, ok, pref = [], True, 0.0
-            for k, (b, g_) in enumerate(zip(orden, ORDEN_G3)):
-                Mb2 = mm(pat_world(b), roty(180.0)) if flip else pat_world(b)
-                Mg_c = gripper_para_caja(Mb2, g_)
-                pref = Mg_c[2][1] * z_libre
-                restantes = list(ORDEN_G3[k + 1:])
-                if not (alcanza(org_de(Mg_c)) and alcanza(subir(org_de(Mg_c), LIFT_MIN))) or choca_estatico(Mg_c, restantes):
-                    ok = False
-                planes.append((Mg_c, Mb2))
-            opciones.append((ok, pref, planes))
-        opciones.sort(key=lambda o: (not o[0], -o[1]))
-        if not opciones[0][0]:
-            AJUSTES.append(("fila3_sin_opcion", layer["capa"], [choca_estatico(p[0], []) for p in opciones[0][2]]))
-        planes = opciones[0][2]
-        for k, (b, g_) in enumerate(zip(orden, ORDEN_G3)):
+            for orden_g in ((6, 5, 4), (4, 5, 6)):
+                fl = (lambda M: mm(M, roty(180.0))) if flip else (lambda M: M)
+                Mg_a = gripper_para_caja(fl(pat_world(targets[0])), orden_g[0])
+                d = 1.0 if Mg_a[0][0] > 0 else -1.0                   # sentido X (mundo) de la pala móvil
+                orden = sorted(targets, key=lambda b: b["p"][0] * d)  # empieza por el extremo opuesto a la pala móvil
+                planes, ok, pref = [], True, 0.0
+                for k, (b, g_) in enumerate(zip(orden, orden_g)):
+                    Mb2 = fl(pat_world(b))
+                    Mg_c = gripper_para_caja(Mb2, g_)
+                    restantes = list(orden_g[k + 1:])
+                    if restantes:
+                        dz = mm(Mg_c, LB[restantes[0]])[2][3] - Mb2[2][3]
+                        pref += 1.0 if dz * z_libre > 0 else -1.0
+                    if not (alcanza(org_de(Mg_c)) and alcanza(subir(org_de(Mg_c), LIFT_MIN))) or choca_estatico(Mg_c, restantes):
+                        ok = False
+                    planes.append((Mg_c, Mb2))
+                opciones.append((ok, pref, orden_g == (6, 5, 4), planes, orden, orden_g, d))
+        opciones.sort(key=lambda o: (not o[0], -o[1], not o[2]))
+        ok, pref, _, planes, orden, orden_g, d = opciones[0]
+        if not ok:
+            AJUSTES.append(("fila3_sin_opcion", layer["capa"], [choca_estatico(p[0], []) for p in planes]))
+        PALA_LOG.append((layer["capa"], "row3", "x" + ("+" if d > 0 else "-"), orden_g, ok, pref,
+                         [round(b["p"][0]) for b in orden]))
+        for k, (b, g_) in enumerate(zip(orden, orden_g)):
             Mg, Mb2 = planes[k]
             pl = org_de(Mg)
             ab = arriba(pl, LIFT if k == 0 else LIFT_MIN)
-            arco = max(0.0, (STACK_TOP[0] + 420.0) - ab[1][1]) + 120.0 if k == 0 else 0.0
             if k == 0:
-                segs += traslado(segs[-1].t1, prev, ab)
+                segs += traslado(segs[-1].t1, prev, ab, garras=list(orden_g))
             else:
                 segs.append(mover(segs[-1].t1, prev, ab, vmin=0.5, nota="corre"))
             s = segs[-1]
@@ -927,7 +1059,7 @@ while t < T_FIN:
 for b in boxes:                      # cierre de los tramos abiertos al final
     if b.keys and b.keys[-1][1] in ("path", "int"):
         b.key(T_FIN, b.keys[-1][1], pos.get(b.idx, b.keys[-1][2]))
-DIAG.update({"picked": picked, "placed": placed, "max_cola_interna": max_q, "T_pallet_listo": T_PAL_LISTO,
+DIAG.update({"palas": PALA_LOG[:24], "traslados": TRASLADOS, "picked": picked, "placed": placed, "max_cola_interna": max_q, "T_pallet_listo": T_PAL_LISTO,
              "T_fin_paletizado": T_FIN_PAL, "ciclos": len(robot_cycles), "cajas_generadas": src_i,
              "salida": {k: round(v, 2) for k, v in EXIT.items() if isinstance(v, float)}})
 DIAG["avisos"].append("pateador: con la chapa retraída queda a 164 mm de la caja sobre T3; con los 300 mm de carrera del "
@@ -1174,6 +1306,8 @@ DIAG["ajustes_alcance"] = AJUSTES
 # ------------------------------------------------------------------ guion del video (segmentos, cámara, leyendas)
 E_ = EXIT
 T_CAPA1 = [c for c in robot_cycles if c.get("pal") == 1 and c["capa"] == 0][-1]["t1"] + 0.4
+T_F3 = [c for c in robot_cycles if c.get("pal") == 1 and c["capa"] == 0 and c["kind"] == "row3"][0]["t1"] + 0.6
+C3 = [PAL_O[0], PAL_O[1] + 152.0 + 75.0, PAL_O[2] + LAYERS[0]["z3"]]          # fila de 3 de la capa 1
 SEG_V = [
     # (nombre, t0, t1, velocidad, claves de cámara [(u, ojo, objetivo, ancho)], leyenda)
     ("general", -12.0, -6.0, 1.0, [(0.0, (21000, 26000, -16000), (-3500, 0, -38500), 38000),
@@ -1181,18 +1315,24 @@ SEG_V = [
      "Planta Las Tres Niñas · Celda A de paletizado (nueva)"),
     ("pateador", -6.0, 0.0, 1.0, [(0.0, (-13900, 5300, -38300), (-12050, 800, -36600), 4200),
                                   (1.0, (-13700, 5000, -38200), (-11850, 800, -36650), 3900)],
-     "Cinta de llegada → pateador → cinta interna (acumula contra el tope)"),
+     "Cinta de llegada (1 caja cada 2,5 s) → pateador → cinta interna (acumula contra el tope)"),
     ("aereo", 0.0, 17.0, 2.0, [(0.0, (-2500, 6500, -29000), (-10300, 1200, -33800), 9500),
                                (0.55, (-2800, 6200, -29800), (-10000, 1000, -34800), 9000),
                                (1.0, (-3200, 5600, -31000), (-9000, 800, -35700), 8000)],
      "Robot aéreo: toma un pallet vacío del buffer y lo apoya en la cama de ingreso (×2)"),
-    ("capa1", 17.0, T_CAPA1, 1.0, [(0.0, (-3600, 4900, -32200), (-8500, 1000, -36400), 6200),
+    ("fila3", 17.0, T_F3, 1.0, [(0.0, (-4600, 4300, -32300), (C3[0], C3[1], C3[2] - 250), 4300),
+                                (0.3, (C3[0] + 2300, C3[1] + 2200, C3[2] + 2600), (C3[0], C3[1], C3[2] - 100), 2700),
+                                (1.0, (C3[0] + 2100, C3[1] + 2300, C3[2] + 2700), (C3[0], C3[1], C3[2] - 100), 2600)],
+     "Fila de 3: un extremo, la del medio y el otro extremo · la pala móvil abre siempre hacia el lado libre"),
+    ("capa1", T_F3, T_CAPA1, 2.0, [(0.0, (C3[0] + 2100, C3[1] + 2300, C3[2] + 2700), (C3[0], C3[1], C3[2] - 100), 2600),
+                                   (0.25, (-3900, 4600, -32400), (-8400, 1000, -35900), 5200),
                                    (1.0, (-4100, 5300, -31700), (-8400, 1050, -36400), 6600)],
-     "Capa 1: toma 3 cajas y las deja de a una (fila transversal); después dos tomas de 7"),
-    ("capas", T_CAPA1, E_["T_GIR0"], 7.0, [(0.0, (-3600, 6200, -32200), (-8500, 1150, -36600), 6800),
-                                           (0.5, (-1800, 6600, -36600), (-8500, 1150, -36600), 7200),
-                                           (1.0, (-2600, 6300, -40200), (-8500, 1150, -36600), 6800)],
-     "Capas 2 a 8 (×7)"),
+     "Filas de 7: primero la del medio (pala fija contra la fila de 3) y después la del borde (×2)"),
+    ("capas", T_CAPA1, E_["T_GIR0"], 10.0, [(0.0, (-4100, 5300, -31700), (-8400, 1050, -36400), 6600),
+                                            (0.15, (-3600, 6200, -32200), (-8500, 1150, -36600), 6800),
+                                            (0.55, (-1800, 6600, -36600), (-8500, 1150, -36600), 7200),
+                                            (1.0, (-2600, 6300, -40200), (-8500, 1150, -36600), 6800)],
+     "Capas 2 a 8 (×10)"),
     ("salida", E_["T_GIR0"], E_["T_MOV0"] + 9.0, 1.5, [(0.0, (-2600, 4400, -31600), (-7200, 700, -35900), 7600),
                                                       (1.0, (-600, 4400, -31200), (-5200, 700, -35700), 7600)],
      "Pallet completo: la mesa giratoria se orienta hacia la celda y el pallet sale por la barrera IFM (muting)"),
@@ -1243,11 +1383,16 @@ for seg in SEG_V:
         eye, tgt, w = cam_en(seg, t_)
         txt = ley
         if nombre == "capas":
-            txt = f"Capas 2 a 8 (×7) · armando la capa {max(2, capa_en(t_))} de 8"
+            txt = f"Capas 2 a 8 (×10) · armando la capa {max(2, capa_en(t_))} de 8"
         if nombre == "aereo" and t_ >= PALLETS["SIM_Pallet_1"]["t_cama"][0]:
             txt = "Las camas llevan el pallet a la estación y el centrador lo alinea (×2)"
         FRAMES.append({"t": t_, "seg": nombre, "vel": vel_, "eye": eye, "tgt": tgt, "w": w, "ley": txt})
 DIAG["cuadros"] = len(FRAMES)
+_ext = [_bb(pat_world(b), (-193, 193), (0, 149), (-78, 78)) for b in PAT]
+DIAG["carga_mm"] = {"x": round(max(e[3] for e in _ext) - min(e[0] for e in _ext), 1),
+                    "z": round(max(e[5] for e in _ext) - min(e[2] for e in _ext), 1),
+                    "alto": round(max(e[4] for e in _ext) - PAL_O[1], 1),
+                    "luz_entre_cajas": LUZ_PALA, "cierre_pala_movil": round(CIERRE_PALA, 1)}
 DIAG["segmentos"] = {s[0]: int(round((s[2] - s[1]) / s[3] * FPS)) for s in SEG_V}
 
 if "--sin-cuadros" in sys.argv:
@@ -1282,7 +1427,8 @@ for fi, fr in enumerate(FRAMES):
 DIAG["consistencia"]["ik_max_mm"] = round(ik_max, 3)
 
 plan = {"version": 2, "fps": FPS, "objetos": OBJ, "ocultar": OCULTAR, "proxy_dinamicos": list(PROXY_DIN),
-        "gripper": {"modulos": MODS, "apertura_mm": APERT0, "carrera_cierre_mm": 22.0},
+        "gripper": {"modulos": MODS, "apertura_mm": APERT0, "cierre_mm": round(CIERRE_PALA, 1), "x_caja_local": X_BOX_LOC,
+                    "luz_entre_cajas_mm": LUZ_PALA},
         "giratoria": {"deck": GIR_DECK["n"], "eje": [X_GIR, Z_GIR], "th": [0.0, 90.0]},
         "film": {"A": [1216.0, 1016.0], "B": [1222.0, 1022.0], "espesor": 3.0, "alto": H_FILM},
         "pallet_lleno": {"pallet": PAL_F, "caja": CAJA_F,

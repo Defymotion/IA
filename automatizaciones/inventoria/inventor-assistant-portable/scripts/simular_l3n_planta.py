@@ -27,7 +27,7 @@ a.add_argument("--alto", type=int, default=1080)
 a.add_argument("--carpeta", default="Animacion")
 a.add_argument("--zip", default="")
 a.add_argument("--paso", type=int, default=1, help="renderiza 1 de cada N cuadros (el estado se acumula igual)")
-a.add_argument("--apertura", type=float, default=25.0, help="mm que abre la pala móvil")
+a.add_argument("--apertura", type=float, default=25.0, help="mm que abre la pala móvil (planes viejos, sin cierre_mm)")
 a.add_argument("--gir-th", default="", help="'thZ,thX': giro (grados, respecto del modelo) para transportar en Z y en X")
 a.add_argument("--prueba-giratoria", default="", help="'th1,th2,...': sólo fotos en planta de la mesa giratoria y sale")
 a.add_argument("--sin-pantalla", action="store_true", help="ScreenUpdating=False mientras se mueven las piezas")
@@ -121,6 +121,13 @@ for nm in plan["gripper"]["modulos"]:
     ap = next(c for c in inv._items(md.ComponentDefinition.Constraints) if "apertura" in c.Name.lower())
     MODS.append((md, ap, ap.Offset.Value))
 SIGNO = escj.get("signo_abre", 1)
+# plan v4: la pala móvil del modelo está ABIERTA (cilindro retraído); cierra cierre_mm hasta tocar la caja, que apoya
+# contra la pala fija. Se parte del valor del modelo relevado al armar la escena (no del actual, que puede haber
+# quedado movido por un render anterior).
+CIERRE = plan["gripper"].get("cierre_mm")
+V0_MODELO = (escj.get("modulo_prueba") or {}).get("v0_mm")
+if CIERRE is not None and V0_MODELO is not None:
+    MODS = [(md, ap, V0_MODELO / 10.0) for (md, ap, _) in MODS]
 # mesa giratoria: ángulo para "transporta en Z" (rodillos a lo largo de X) y "transporta en X"
 deck0 = plan["objetos"]["SIM_Gir_Deck"]["M"]
 def _hojas(o, out):
@@ -256,7 +263,10 @@ def aplicar(c=None):
     for k, f in enumerate(estado_G):
         if aplic_G[k] != f:
             md, ap, v0 = MODS[k]
-            ap.Offset.Value = v0 + SIGNO * (x.apertura / 10.0) * (1.0 - f)
+            if CIERRE is not None and V0_MODELO is not None:
+                ap.Offset.Value = v0 - SIGNO * (CIERRE / 10.0) * f
+            else:
+                ap.Offset.Value = v0 + SIGNO * (x.apertura / 10.0) * (1.0 - f)
             md.Update()
             aplic_G[k] = f
             cambio_g = True
