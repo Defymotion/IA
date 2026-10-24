@@ -1066,3 +1066,8 @@ la luz puede ser chica (pallet más cuadrado).
   Último pedido: p279.
 - Velocidad de encajonadoras Tetra (para el usuario): A3/Flex 5000-8000 envases/h; A3/Speed hasta 26 500 envases
   porción/h. Con 24 envases por caja: 1 caja cada 3,3-10,8 s; 2,5 s es exigente para una sola línea.
+- Limpieza (24/10 17:45, pedido del usuario): todo lo de versiones anteriores de la simulación (Cuadros v1/v3, jpg,
+  zips, Prueba1-6, planes v1-v3, videos previa y v3, OldVersions de la escena, `Generados\L3N_SIM_viejo`) se movió a
+  `Generados\_PARA_BORRAR_versiones_viejas_L3N` (7,7 GB) para que el usuario lo borre (la IA no borra en firme).
+  Queda en `L3N_SIM2`: escena, Gripper_SIM, Piezas, plan_l3n_v4 (+meta), Cuadros_v4, Prueba7, Revision_v4 y
+  Animacion\L3N_simulacion_v4_30fps.mp4 / _960.mp4.
