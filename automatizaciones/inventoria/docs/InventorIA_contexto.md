@@ -1058,6 +1058,11 @@ la luz puede ser chica (pallet más cuadrado).
 - Render: `simular_l3n_planta.py` usa `cierre_mm` del plan (abierta = valor del modelo -484,73 de escena.json;
   cerrada = +45,3 mm). `l3n_sim_pallet_lleno.py plan` (p274) movió las 136 cajas de `Pallet_lleno_sim.iam` a la luz
   nueva. Fotos de prueba en `Prueba7` (p275) y mosaicos en `L3N_SIM2\Revision_v4`. Render completo en
-  `Cuadros_v4` (p276-p279, 800 cuadros cada uno).
+  `Cuadros_v4` (p276-p279, 800 cuadros cada uno, 1,9-3,7 s por cuadro, ~2 h en total).
+- Video: rótulos y armado en la VM del puente (rotular.py desde los PNG del montaje a `~/work/rot4`, partes de 400
+  cuadros con ffmpeg crf 19 medium de <55 s cada una, concat -c copy). OJO: no cortar rotular.py con `timeout`
+  (deja un JPG truncado que después se saltea): verificar los JPG con PIL antes de codificar.
+  Entregado `Generados\L3N_SIM2\Animacion\L3N_simulacion_v4_30fps.mp4` (104,6 s, 162 MB) y `_960.mp4`.
+  Último pedido: p279.
 - Velocidad de encajonadoras Tetra (para el usuario): A3/Flex 5000-8000 envases/h; A3/Speed hasta 26 500 envases
   porción/h. Con 24 envases por caja: 1 caja cada 3,3-10,8 s; 2,5 s es exigente para una sola línea.
