@@ -1118,3 +1118,14 @@ generación anterior (105/107/114/242 °/s), aceleraciones estimadas.
 - Velocidad del render: con `SetCoordinateSystem` por cada matriz (como en v4) cada movimiento costaba ~0,11 s y los
   tramos con las dos celdas iban a 5-8 s por cuadro (p313-p315). Desde p320 el renderizador reutiliza una Matrix con
   `PutMatrixData` (~0,02-0,03 s por movimiento, mismo resultado píxel a píxel, p324). Ver Guía §12.1.
+- Render completo p313-p322 (las partes 4-6 renumeradas p320-p322 después de los benchs p319/p323 y la prueba p324):
+  3,2 / 4,9 / 8,0 s por cuadro con la matriz vieja; 2,4 / 3,2 / 2,6 s con PutMatrixData.
+- Video: rótulos en la VM del puente (`L3N_SIM5\_herramientas\rotular.py`, marca "Celdas A y B" con caja al ancho
+  del texto; si un PNG se lee a medio sincronizar se saltea y se toma en otra pasada) a `~/work/rot5`, partes de 400
+  cuadros con `parte5.sh` (concat demuxer sin repetir el último cuadro; crf 19 medium) y concat -c copy. Copias en
+  el repo: `scripts\l3n_sim5\video\`.
+  Entregado `Generados\L3N_SIM5\Animacion\L3N_simulacion_v5_30fps.mp4` (142,2 s, 210 MB) y `_960.mp4` (27 MB).
+  Último pedido: p324.
+- Pendiente / a confirmar con el usuario: reubicar puerta y panel neumático de B (tramo oeste bajo el robot aéreo),
+  tablero 11-06 corrido, recorte real de 32 mm de la cubierta del pateador A, chapa del pateador B apenas por debajo
+  de la superficie de la cinta Tetra en el CAD original; tiempos de los KUKA estimados (confirmar modelo de B).
