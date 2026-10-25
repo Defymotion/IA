@@ -44,6 +44,7 @@ plan = json.loads(Path(x.plan).read_text(encoding="utf-8"))
 escj = json.loads((OUT / "escena.json").read_text(encoding="utf-8"))
 app = inv._inventor(start_if_needed=False)
 tg = app.TransientGeometry
+_M = tg.CreateMatrix()
 log = {"avisos": []}
 ANG = 0.52
 
@@ -68,10 +69,11 @@ def mx(c):
     n = sum(v * v for v in ey) ** 0.5
     ey = [v / n for v in ey]
     ez = [ex[1] * ey[2] - ex[2] * ey[1], ex[2] * ey[0] - ex[0] * ey[2], ex[0] * ey[1] - ex[1] * ey[0]]
-    m = tg.CreateMatrix()
-    m.SetCoordinateSystem(tg.CreatePoint(c[3] / 10, c[7] / 10, c[11] / 10), tg.CreateVector(*ex),
-                          tg.CreateVector(*ey), tg.CreateVector(*ez))
-    return m
+    # una sola llamada COM sobre una Matrix reutilizada (bench_matriz.py: 1 ms contra 45 ms de SetCoordinateSystem;
+    # asignarla a varias ocurrencias no las enlaza)
+    _M.PutMatrixData([ex[0], ey[0], ez[0], c[3] / 10, ex[1], ey[1], ez[1], c[7] / 10,
+                      ex[2], ey[2], ez[2], c[11] / 10, 0.0, 0.0, 0.0, 1.0])
+    return _M
 
 
 def mm(P, Q):
