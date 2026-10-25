@@ -1115,3 +1115,6 @@ generación anterior (105/107/114/242 °/s), aceleraciones estimadas.
   4266 cuadros; el tramo "envuelto" A (cuadros 2677-2991) es idéntico al v4 (misma cámara, pallet, rotor, carro y
   film; para eso la línea en X usa la Z de la estación A, -35617,06) y se copiaron los cuadros c02475-c02789 de
   `L3N_SIM2\Cuadros_v4`. Render en `L3N_SIM5\Cuadros` (p313-p318).
+- Velocidad del render: con `SetCoordinateSystem` por cada matriz (como en v4) cada movimiento costaba ~0,11 s y los
+  tramos con las dos celdas iban a 5-8 s por cuadro (p313-p315). Desde p320 el renderizador reutiliza una Matrix con
+  `PutMatrixData` (~0,02-0,03 s por movimiento, mismo resultado píxel a píxel, p324). Ver Guía §12.1.

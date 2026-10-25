@@ -636,6 +636,13 @@ Flags incrementales: cuando aparece algo nuevo para mover (por ejemplo los vást
 
 `occ.Transformation = mmake(M)` es directo y se ve después de `doc.Update()`.
 
+**Velocidad (escenas grandes, cientos de ocurrencias que se mueven):** armar la `Matrix` con `CreateMatrix` +
+`CreatePoint` + 3 `CreateVector` + `SetCoordinateSystem` cuesta ~45 ms por las llamadas COM. Reutilizar UNA `Matrix`
+y cargarla con `m.PutMatrixData([16 doubles por filas, traslación en cm])` cuesta ~1 ms; asignar la misma `Matrix`
+a varias ocurrencias no las enlaza (Inventor copia el valor). Mover una ocurrencia pasa de ~105 ms a ~22 ms
+(`bench_matriz.py`, L3N v5). `TransformOccurrences`, `SetTransformWithoutConstraints` y `DeferUpdate` no mejoran
+(`bench_transform5.py`).
+
 ### 12.2 Piezas dentro de subensambles
 
 - **Subensamble rígido** (lo normal):
