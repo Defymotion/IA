@@ -1129,3 +1129,13 @@ generación anterior (105/107/114/242 °/s), aceleraciones estimadas.
 - Pendiente / a confirmar con el usuario: reubicar puerta y panel neumático de B (tramo oeste bajo el robot aéreo),
   tablero 11-06 corrido, recorte real de 32 mm de la cubierta del pateador A, chapa del pateador B apenas por debajo
   de la superficie de la cinta Tetra en el CAD original; tiempos de los KUKA estimados (confirmar modelo de B).
+- Limpieza (25/10 21:20, pedido del usuario: "todo lo no utilizado a una carpeta que diga borrar"):
+  - `Documents\InventorIA\Generados\_BORRAR` (8,6 GB): `L3N_SIM2_simulacion_v4` (escena, cuadros y videos v4),
+    `L3N_SIM5_cuadros_PNG` (los 4266 PNG del v5), `L3N_SIM5_pruebas` (fotos de prueba y OldVersions), `PRUEBA`,
+    `_staging` (archivos de traspaso).
+  - `C:\DEFYMOTION\L3N\_BORRAR` (144 MB): respaldos `*_antes_*.iam` de las celdas, OldVersions de `Celdas_IA`, la
+    copia sin usar `chapa nueva 2_recortada_32.ipt` y `InventorIA\Generados\L3N_SIM` (simulación v1).
+  - Queda en uso `Generados\L3N_SIM5` (escena, Gripper_SIM, Piezas, plan + meta, escena.json, _herramientas,
+    Animacion). No se tocó `ADECO 12-12-25` (originales del cliente) ni `Estudio_IA`.
+  - Para retocar un tramo del video v5 sin los PNG: re-renderizar ese tramo (~2,5 s/cuadro) y re-armar (las partes
+    rotuladas en la VM del puente pueden no estar más).
