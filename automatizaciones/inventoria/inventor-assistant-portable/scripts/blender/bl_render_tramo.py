@@ -121,15 +121,21 @@ def aplicar():
             aplic_gir[dk] = f
 
 
+K_DIST = float(argv[argv.index("--k-dist") + 1]) if "--k-dist" in argv else 1.1032
+
+
 def camara(c):
+    """Como Inventor (camara_inventor.py): mismo objetivo y dirección, pero el ojo a K_DIST·ancho del objetivo y el
+    ancho pedido visible en el plano del objetivo."""
     ex, ey, ez, tx, ty, tz, w = c
-    ojo = C @ Vector((ex / 1000.0, ey / 1000.0, ez / 1000.0, 1.0))
-    obj = C @ Vector((tx / 1000.0, ty / 1000.0, tz / 1000.0, 1.0))
-    ojo, obj = ojo.to_3d(), obj.to_3d()
+    ojo = (C @ Vector((ex / 1000.0, ey / 1000.0, ez / 1000.0, 1.0))).to_3d()
+    obj = (C @ Vector((tx / 1000.0, ty / 1000.0, tz / 1000.0, 1.0))).to_3d()
     d = obj - ojo
-    cam.location = ojo
+    D = K_DIST * w / 1000.0 if K_DIST > 0 else d.length
+    cam.location = obj - d.normalized() * D
     cam.rotation_euler = d.to_track_quat("-Z", "Y").to_euler()
-    cam.data.angle = 2.0 * math.atan((w / 1000.0) / 2.0 / d.length)
+    cam.data.sensor_fit = "HORIZONTAL"
+    cam.data.angle = 2.0 * math.atan((w / 1000.0) / 2.0 / D)
 
 
 tiempos = []
