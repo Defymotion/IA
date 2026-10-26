@@ -1162,3 +1162,25 @@ módulo, video integrado "Intel Graphics", SSD 1 TB, Windows 11. Blender 5.2.3 L
   tiempo en esta PC, aspecto más limpio y Inventor libre. Videos en `L3N_SIM5\Blender\Videos`
   (`L3N_comparacion_Inventor_Blender.mp4`, `L3N_prueba_Blender_celdaB.mp4`). Falta en Blender: palas del gripper A
   (en Inventor van por restricción; hay que exportar sus piezas móviles como las de B).
+
+### L3N — simulación completa en Blender (26/10/2026 madrugada, p337-p354)
+
+Pedido del usuario: render completo en Blender, con libertad para el realismo, y corregir que el pallet B no giraba
+con la mesa giratoria.
+- Planificador (`l3n_sim5/linea5.py`, `plan5.py`): `giro_pallet()`: el pallet gira con la mesa cuando ésta gira con
+  él arriba (giratoria B -90° al salir a la línea en Z; giratoria A +90° al pasar a la línea en X). Plan
+  `plan_l3n_v5b.json` (sólo cambian `SIM_B_Lleno` y sus films).
+- `gripper_A_moviles.py` (p337): con +1 cm de "Apertura" se mueven -10 mm en X del gripper: pala, goma, placa de
+  empuje, empuja pala ×2, vástago ADN (KS), tuercas DIN-439 y las placas 0485 (cierre = -45,3 mm·f en X).
+- Blender (`scripts\blender\`): `bl_armar_escena.py` -> `bl_animar.py` (plan a claves: 229 148 claves de matriz,
+  visibilidad por escala 0/1 constante, palas A/B hijas de su gripper, cámara como Inventor con cortes sin
+  interpolar, obturador del desenfoque = min(0,5; 0,5/velocidad del tramo), `use_overwrite=False` + placeholders) ->
+  `bl_ambiente.py --variante real --muestras 40` (HDRI studio.exr de Blender para luz/reflejos con fondo blanco para
+  la cámara, sol de 4°, piso de cemento claro, metales por apariencia, Eevee con trazado de rayos) ->
+  `bl_correr.py --render <blend> <Cuadros\c#####> --rango a b` (p349-p354, ~3,7 s por cuadro, 4,4 h).
+  OJO: los objetos que empiezan ocultos tienen `hide_render` del armado; `bl_animar` lo limpia (visibilidad por escala).
+- Video: rótulos en la VM (`rotular.py` saltea PNG a medio sincronizar con cualquier excepción; segunda pasada) en
+  `~/work/rot_bl5`, partes de 400 con `parte_bl5.sh`, concat. Entregado
+  `Generados\L3N_SIM5\Animacion\L3N_simulacion_v5_Blender_30fps.mp4` (142,2 s, 140 MB) y `_960.mp4` (28 MB).
+  Cuadros PNG en `L3N_SIM5\Blender\Cuadros` (para retocar tramos: `bl_correr.py --render ... --rango`). Último
+  pedido: p354.
