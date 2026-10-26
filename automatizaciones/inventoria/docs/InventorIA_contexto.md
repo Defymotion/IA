@@ -1139,3 +1139,26 @@ generación anterior (105/107/114/242 °/s), aceleraciones estimadas.
     Animacion). No se tocó `ADECO 12-12-25` (originales del cliente) ni `Estudio_IA`.
   - Para retocar un tramo del video v5 sin los PNG: re-renderizar ese tramo (~2,5 s/cuadro) y re-armar (las partes
     rotuladas en la VM del puente pueden no estar más).
+
+### L3N — prueba de render en Blender (25-26/10/2026, p325-p336)
+
+PC del usuario (`info_pc.py`): Lenovo, Intel Core Ultra 7 155H (16 núcleos, 22 hilos), 32 GB DDR5-5600 en un solo
+módulo, video integrado "Intel Graphics", SSD 1 TB, Windows 11. Blender 5.2.3 LTS en
+`C:\Program Files\Blender Foundation\Blender 5.2` (`buscar_blender.py`).
+- Inventor no exporta FBX de fábrica; el OBJ (ATF, desde 2017) trae un .mtl con un material por color de cara
+  ("R,G,B"), en mm y en coordenadas de la pieza. El STL no trae color y la apariencia de la ocurrencia muchas veces
+  es "Valor por defecto" (el color real está en cuerpos/caras: KUKA naranja, franjas del piso).
+- `l3n_blender_exportar.py plan` (p327, 24 min; casi todo es recorrer las 7000 hojas por COM): escena v5 reabierta
+  limpia -> `Blender\escena_blender.json` (5887 ocurrencias fijas con matriz, color y ruta; 30 plantillas de objetos
+  SIM; 497 piezas, sin tornillería <20 mm). OJO: lo oculto por el armador de la escena no queda guardado al reabrir:
+  se filtra con `plan["ocultar"]` y, en el gripper B, con los prefijos de piezas móviles/bandejas.
+- `l3n_blender_mallas_obj.py` (p332, 1 min): las 497 piezas a `Blender\mallas_obj\mNNNN.obj/.mtl`.
+- Blender (`scripts\blender\`, lanzados por `bl_correr.py` desde el vigilante):
+  `bl_armar_escena.py` (p335, 6 s) -> `Blender\L3N_SIM5.blend` (mallas compartidas, Empty "SIM:<nombre>" por objeto
+  móvil, colores del .mtl pasados de sRGB a lineal, madera y bandeja LEAF forzadas, piso y cielo blancos, sol);
+  `bl_render_tramo.py` aplica el plan igual que `simular_l3n_v5.py`. Cámara: Inventor corre el ojo a ~1,1032·ancho
+  del objetivo (`camara_inventor.py`), así el encuadre coincide.
+- Resultado: tramo celda B (cuadros 1133-1412) con Eevee 32 muestras a 2,9 s por cuadro (Inventor ~2,5-3 s): mismo
+  tiempo en esta PC, aspecto más limpio y Inventor libre. Videos en `L3N_SIM5\Blender\Videos`
+  (`L3N_comparacion_Inventor_Blender.mp4`, `L3N_prueba_Blender_celdaB.mp4`). Falta en Blender: palas del gripper A
+  (en Inventor van por restricción; hay que exportar sus piezas móviles como las de B).
