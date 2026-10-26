@@ -149,7 +149,7 @@ def material(c):
 # apariencias con textura (madera, cartón) que el OBJ/la API no traen con su color real, y la bandeja LEAF, blanca
 # según la ficha (liner externo blanco)
 COLOR_POR_ARCHIVO = {"Caja_LEAF": [0.93, 0.93, 0.91], "European Pallet": [0.80, 0.63, 0.43]}
-COLOR_POR_APARIENCIA = {"Abedul": [0.80, 0.63, 0.43], "Cartón": [0.62, 0.47, 0.32]}
+COLOR_POR_APARIENCIA = {"Cartón": [0.62, 0.47, 0.32]}         # (la madera, sólo por archivo: el pallet)
 
 
 def color_forzado(h):
@@ -169,6 +169,7 @@ def objeto(nombre, h, col):
         return None
     o = bpy.data.objects.new(nombre, me)
     col.objects.link(o)
+    o["p"], o["a"] = h.get("p", ""), h.get("a", "")
     cf = color_forzado(h)
     if cf is not None:
         for sl in o.material_slots:

@@ -11,7 +11,7 @@ from comun import (Trayectoria, box_M, comp, ease, ease5, inv, lerp, mm, tr, rot
 from config5 import celda_A, celda_B  # noqa: E402
 from celda5 import T_CIERRE  # noqa: E402
 import ingreso5 as ING  # noqa: E402
-from linea5 import Aereo, Giratoria, Linea, Y_LINEA, Y_MP  # noqa: E402
+from linea5 import Aereo, Giratoria, Linea, Y_LINEA, Y_MP, giro_pallet  # noqa: E402
 
 REL = json.load(open(sys.argv[1], encoding="utf-8"))
 OUT = Path(sys.argv[2])
@@ -299,7 +299,9 @@ def lleno_M(c, info, t):
     p = info["mov"].xz(t)
     if p is None:
         return tr(*c.PAL_O)
-    return tr(p[0], y_apoyo(p[0], p[1], c.PAL_O[1]), p[1])
+    M = tr(p[0], y_apoyo(p[0], p[1], c.PAL_O[1]), p[1])
+    ang = giro_pallet(info, t)
+    return mm(M, roty(ang)) if abs(ang) > 1e-6 else M
 
 
 # envolvedora

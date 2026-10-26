@@ -98,6 +98,18 @@ class Giratoria:
         return max([t] + [r[1] for r in self.reservas if r[1] > t])
 
 
+def giro_pallet(info, t, grados_por_modo=90.0):
+    """Ángulo (grados, convención roty) que acumuló el pallet por los giros de mesa hechos con él arriba."""
+    ang = 0.0
+    for (g, i) in (info or {}).get("giros", []):
+        t0, t1, de, a = g.ev[i]
+        if t <= t0:
+            continue
+        u = 1.0 if t >= t1 else ease5((t - t0) / (t1 - t0))
+        ang += grados_por_modo * (a - de) * u
+    return ang
+
+
 class Movimiento:
     """Trayecto de un pallet por tramos rectos (x, z) con perfil trapezoidal por tramo y altura de apoyo por función."""
 
@@ -154,7 +166,7 @@ class Linea:
         """Planifica la salida del pallet lleno de 'celda' desde la estación pal_o. Devuelve el dict con el movimiento,
         el instante en que la estación queda libre y los del envuelto."""
         mov = Movimiento()
-        info = {"celda": celda, "mov": mov, "T_lleno": t_lleno}
+        info = {"celda": celda, "mov": mov, "T_lleno": t_lleno, "giros": []}   # giros de mesa CON el pallet arriba
         t = t_lleno + 0.3
         p_est = (pal_o[0], pal_o[2])
         if celda == "A":
@@ -177,7 +189,10 @@ class Linea:
             info["T_mov0"] = t
             t = mov.agregar(t, p_est, (gB.x, gB.z))
             info["T_estacion_libre"] = mov.t_de_x(pal_o[0] + 1350.0, 0) or t
-            t = gB.girar(t + 0.3, 0) + 0.3
+            n0 = len(gB.ev)
+            t = gB.girar(t + 0.3, 0) + 0.3                 # la mesa B gira con el pallet arriba
+            if len(gB.ev) > n0:
+                info["giros"].append((gB, n0))
             # por la línea en Z hasta la giratoria A (en modo Z y libre)
             pA = (self.gA.x, self.z_x)
             D = abs(pA[1] - gB.z)
@@ -192,7 +207,10 @@ class Linea:
             t_in = t
             t = mov.agregar(t, (gB.x, gB.z), pA)
             gB.girar(t_in + 4.0, 1)          # B vuelve a recibir de su celda
-            t = self.gA.girar(t + 0.3, 1) + 0.6
+            n0 = len(self.gA.ev)
+            t = self.gA.girar(t + 0.3, 1) + 0.6            # la mesa A gira con el pallet de B arriba
+            if len(self.gA.ev) > n0:
+                info["giros"].append((self.gA, n0))
             t2 = mov.agregar(t, pA, (X_ESPERA_MP, pA[1]))
             t_libre_gir = mov.t_de_x(self.gA.x + 990.0 + 620.0, 0)
             self.gA.reservas.append((t_in, t_libre_gir))
