@@ -1184,3 +1184,32 @@ con la mesa giratoria.
   `Generados\L3N_SIM5\Animacion\L3N_simulacion_v5_Blender_30fps.mp4` (142,2 s, 140 MB) y `_960.mp4` (28 MB).
   Cuadros PNG en `L3N_SIM5\Blender\Cuadros` (para retocar tramos: `bl_correr.py --render ... --rango`). Último
   pedido: p354.
+
+### Rutas de InventorIA en la PC de Nahuel (27/10/2026, p355-p356)
+
+Inventario de sólo lectura con `info_instalacion.py` (deja `Generados\_info\info_instalacion.json`) y
+`tam_carpetas.py <rutas...>`.
+- **En uso** (lo que leen los scripts y el vigilante): `C:\Users\nm\Documents\InventorIA\` (20,2 GB: `Generados`
+  19,5 GB, de los que `_BORRAR` 9,1 GB y `L3N_SIM5` 10,3 GB, con `L3N_SIM5\Blender` 9,8 GB casi todo cuadros PNG).
+  Complemento en `inventor-assistant-portable\` (87 MB con `.venv`). Python base del `.venv`:
+  `C:\Users\nm\AppData\Local\Programs\Python\Python314` (3.14.2). El vigilante bueno es
+  `C:\Users\nm\Documents\InventorIA\inventor-assistant-portable\scripts\vigilante.bat`.
+- **Proyecto L3N:** `C:\DEFYMOTION\L3N\` (3,2 GB; originales del cliente `ADECO 12-12-25\` 2,4 GB, sólo lectura).
+- **Programas:** Inventor 2025.4 (`C:\Program Files\Autodesk\Inventor 2025\`), Blender 5.2
+  (`C:\Program Files\Blender Foundation\Blender 5.2\`, config de usuario casi vacía en
+  `AppData\Roaming\Blender Foundation\Blender\5.2`). Content Center:
+  `C:\Users\nm\OneDrive\Documentos\Inventor\Content Center Files\R2025\`. Plantillas:
+  `C:\Users\Public\Documents\Autodesk\Inventor 2025\Templates\es-ES\`. Proyecto activo de Inventor al 27/10:
+  `OneDrive\Documentos\NewPackBackup\17_Newpack2\NewPack2.ipj` (no el de L3N).
+- **Restos / duplicados:** `C:\Users\nm\OneDrive\Documentos\InventorIA_viejo_para_borrar\` (87 MB, primera
+  instalación del 21/10, carpetas de datos vacías), `OneDrive\Documentos\IA-main\` (2 MB) e `IA-main.zip` (0,8 MB):
+  copia del repo bajada para instalar.
+- **OJO acceso directo:** `C:\Users\nm\OneDrive\Desktop\Vigilante InventorIA.lnk` apunta al vigilante VIEJO
+  (`InventorIA_viejo_para_borrar\...\vigilante.bat`): toma la cola buena pero corre los scripts viejos. El 27/10 se
+  abrió el vigilante bueno desde el Explorador.
+- **Causa (corregida en el repo):** `instalar.ps1` usaba `GetFolderPath("MyDocuments")`, que con la copia de
+  OneDrive apunta a `OneDrive\Documentos`, mientras `vigilante.py` y los scripts usan `Path.home()/"Documents"`.
+  Ahora instala en `%USERPROFILE%\Documents`.
+- Sin servidor MCP de Inventor registrado (ni en Claude ni en Codex: todo pasa por el vigilante). No hay skills
+  locales de Claude (`~\.claude\skills` no existe). `C:\Users\nm\Documents\Codex` está vacía (de la app Codex).
+  Último pedido: p356.

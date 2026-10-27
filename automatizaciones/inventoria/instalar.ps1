@@ -4,7 +4,9 @@
 # 3) crea el entorno Python (.venv) e instala pywin32, mcp y pillow  4) verifica la instalación
 $ErrorActionPreference = "Stop"
 $Repo = $PSScriptRoot
-$Docs = [Environment]::GetFolderPath("MyDocuments")
+# Misma carpeta que usan vigilante.py y los scripts (Path.home() / "Documents"). No usar MyDocuments: con la copia de
+# seguridad de OneDrive activa apunta a OneDrive\Documentos y la instalación quedaría separada de la cola de pedidos.
+$Docs = Join-Path $env:USERPROFILE "Documents"
 $Base = Join-Path $Docs "InventorIA"
 Write-Host "Carpeta de trabajo: $Base" -ForegroundColor Cyan
 foreach ($d in @("", "_pedidos", "Generados", "Analisis", "Comerciales", "Plantillas", "Calculos")) {
