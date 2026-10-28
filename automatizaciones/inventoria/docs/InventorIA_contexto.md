@@ -1213,3 +1213,34 @@ Inventario de sólo lectura con `info_instalacion.py` (deja `Generados\_info\inf
 - Sin servidor MCP de Inventor registrado (ni en Claude ni en Codex: todo pasa por el vigilante). No hay skills
   locales de Claude (`~\.claude\skills` no existe). `C:\Users\nm\Documents\Codex` está vacía (de la app Codex).
   Último pedido: p356.
+
+### L3N — relevamiento en planta, viabilidad y transportes nuevos (28/10/2026, p380-p401)
+
+- Relevamiento del usuario en `C:\DEFYMOTION\L3N\Relevamiento_planta\2026-10-28\` (29 fotos, DWG
+  `30-03-26-E-01294-A-LAYOUT NX (V1).DWG` de los transportes nuevos y JT + ensamble Inventor
+  `30-07-26-E_01294_A_1_Adecoagro___Anteproyecto_de_Paletizado` (2576 archivos; proveedor E-01294, Costantini)).
+  Faltan las anotaciones de medidas (las pasa después) y la velocidad del robot aéreo.
+- DWG -> DXF con AutoCAD LT de la PC: `dwg_a_dxf.py` (guion .scr con SAVEAS DXF, restituye FILEDIA/CMDDIA) ->
+  `Documents\InventorIA\Analisis\L3N\dxf\` (DXF + zip). En la nube: ezdxf (lectura, recorte por zona, render).
+  Plano de planta `Revamping E2 - Defymotion - Integracion V1.dwg` en metros (mismo sistema que el mapeo DWG->Inventor).
+- Pedido del cliente: NO cambiar la estructura del robot aéreo; se puede alargar el riel. Buffer de cartones en la
+  "zona de cartones" (pasando el fin del riel, junto a la pared este).
+- Mediciones (DWG): pasillo izquierdo pared (cara interior x 3837,70) -> transporte de cajas (3838,697) = 997 mm;
+  transporte -> pórtico robot aéreo 335 mm. Zona de cartones: fin del riel ~3862,0-3862,2, pared este 3864,248 ->
+  2050 mm libres; pila 1200x1000 con 600 mm a la pared este y 850 mm a la norte (puerta de 0,9 m en 3862,75-3863,65).
+  Extensión del riel ≈ 2 m. Imágenes: `Analisis\L3N\viabilidad\viab_*.png`.
+- Transportes nuevos: 188 piezas únicas (115 P- fabricadas, 59 C- comerciales, 14 I-), sólidos B-rep exactos sin
+  historial (+ un MeshFeature del JT: el STL exportado trae malla duplicada; usar el componente estanco mayor).
+  `relevar_jt_piezas.py` -> `Analisis\L3N\transportes_nuevos\piezas_jt.json`.
+- Reconstrucción paramétrica (usuario eligió "fabricable, todo"): `reconstruir_jt.py` (prismas 2.5D por tapas con
+  profundidad muestreada sólo contra tapas, agujeros ciegos/pasantes, agujeros cilíndricos de vuelta completa,
+  ventanas y bolsillos validados con IsPointInside del original; prueba 3 direcciones; valida volumen y caja) ->
+  `C:\DEFYMOTION\L3N\Transportes_nuevos_IA\Piezas\` (+ `reconstruccion.json`; `_REVISAR_` si error > 0,5 %).
+  Diagnóstico: `exportar_stl.py` de original y nueva + diferencia booleana en la nube (trimesh + manifold3d).
+  Prueba de 5 piezas: perfil exacto (0 %); lateral 3,4 %, eje 6,6 %, apoyo 16,5 %, rueda dentada 37 % con la versión
+  anterior; p401 corre la versión con profundidad sólo contra tapas y agujeros ciegos (resultado pendiente).
+  API útil: GetStrokes/GetParamExtents/CalculateFacets/FindUsingRay devuelven tuplas por COM dinámico;
+  TransientBRep.DoBoolean falló con E_INVALIDARG; no hay complemento de reconocimiento de operaciones.
+- Vigilante: el acceso directo del escritorio apuntaba al vigilante viejo (OneDrive\Documentos\
+  InventorIA_viejo_para_borrar); corregido con `arreglar_acceso_vigilante.py` (copia del .lnk en `_staging`).
+  `cerrar_vigilante_viejo.py` cierra el viejo si quedó abierto. Último pedido: p401.

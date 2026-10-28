@@ -86,8 +86,8 @@ def puntos_arista(e, tol=0.001):
     return [(c[3 * i], c[3 * i + 1], c[3 * i + 2]) for i in range(n)]
 
 
-def rayo(body, p, d):
-    """Distancia al primer cruce del rayo (p, d) con el cuerpo, ignorando el arranque."""
+def rayo(body, p, d, filtro=None):
+    """Distancia al primer cruce del rayo (p, d) con el cuerpo, ignorando el arranque. filtro(cara) -> bool."""
     try:
         ents, pts = body.FindUsingRay(tg.CreatePoint(*p), tg.CreateUnitVector(*d), 1e-5, None, None, False)
     except Exception:  # noqa: BLE001
@@ -97,8 +97,19 @@ def rayo(body, p, d):
         q = v(pts.Item(i))
         t = dot(sub(q, p), d)
         if t > 2 * EPS and (mejor is None or t < mejor[0]):
-            mejor = (t, ents.Item(i))
+            ent = ents.Item(i)
+            if filtro is not None and not filtro(ent):
+                continue
+            mejor = (t, ent)
     return mejor if mejor else (None, None)
+
+
+def es_tapa(d):
+    def f(ent):
+        g = S(lambda: ent.Geometry, None)
+        n = S(lambda: g.Normal, None) if g is not None else None
+        return n is not None and paralelo(norm(v(n)), d)
+    return f
 
 
 def caras(body):
@@ -233,11 +244,13 @@ def muestras(f, n=12):
     return out or [v(f.PointOnFace)]
 
 
-def prof_min(body, f, n):
-    """Profundidad mínima del material debajo de la cara plana (normal exterior n), muestreando la cara."""
+def prof_min(body, f, n, solo_tapas=False):
+    """Profundidad mínima del material debajo de la cara plana (normal exterior n), muestreando la cara.
+    solo_tapas: el rayo sólo se detiene en caras planas paralelas a la cara (ignora agujeros, chaveteros, chaflanes)."""
     ts = []
+    fil = es_tapa(n) if solo_tapas else None
     for q in muestras(f):
-        t, _ = rayo(body, add(q, mul(n, EPS)), mul(n, -1))
+        t, _ = rayo(body, add(q, mul(n, EPS)), mul(n, -1), fil)
         if t is not None:
             ts.append(t - EPS)
     return min(ts) if ts else None
@@ -262,20 +275,51 @@ def reconstruir(body, cs, d, P, log, vol0):
     """1) prismas desde cada tapa (normal +d hacia abajo y -d hacia arriba) con la profundidad mínima muestreada,
     sin los agujeros redondos; 2) agujeros cilíndricos cóncavos en cualquier dirección; 3) ventanas no circulares
     de caras laterales; 4) bolsillos (cara lateral rebajada barrida hacia afuera). Los cortes se deshacen si empeoran."""
+    ciegos = []
     for c in cs:
         if c["tipo"] == K_PLANO and paralelo(c["n"], d):
             f, n = c["f"], c["n"]
-            t = prof_min(body, f, n)
+            t = prof_min(body, f, n, solo_tapas=True)
             if t is None or t < 1e-3:
                 continue
+            eds = []
+            for lazo in inv._items(f.EdgeLoops):
+                le = list(inv._items(lazo.Edges))
+                if not S(lambda: lazo.IsOuterEdgeLoop, False) and es_circulo(lazo):
+                    g = le[0].Geometry
+                    cen = v(g.Center)
+                    t1, _ = rayo(body, add(cen, mul(n, EPS)), mul(n, -1))
+                    if t1 is not None and t1 < t - 1e-3:
+                        ciegos.append((cen, n, g.Radius, t))      # agujero ciego: se corta aparte
+                        continue
+                eds += le
             sk = P.boceto(v(f.PointOnFace), n)
-            P.dibujar_aristas(sk, aristas_cara(f, sin_circulos=True))
+            P.dibujar_aristas(sk, eds)
             P.extruir(sk, t, NEG, JOIN)
             log["prismas"] += 1
     vacio = Vacio(body)
+    for cen, n, r, t in ciegos:
+        # profundidad del agujero = extensión de su pared cilíndrica (sin la punta de broca)
+        L = None
+        for c in cs:
+            if c["tipo"] == K_CIL and paralelo(c["eje"], n) and abs(c["r"] - r) < 1e-5:
+                ax = sub(cen, add(c["base"], mul(c["eje"], dot(sub(cen, c["base"]), c["eje"]))))
+                if dot(ax, ax) > 1e-8:
+                    continue
+                pts = []
+                for e in aristas_cara(c["f"]):
+                    pts += puntos_arista(e, 0.01)
+                prof = max(dot(sub(cen, q), n) for q in pts)
+                L = prof if L is None else max(L, prof)
+        if L is None or L < 1e-3:
+            continue
+        sk = P.boceto(cen, n)
+        sk.SketchCircles.AddByCenterRadius(sk.ModelToSketchSpace(tg.CreatePoint(*cen)), r)
+        P.extruir(sk, min(L, t), NEG, CUT)
+        log["agujeros"] += 1
     grupos = {}
     for c in cs:
-        if c["tipo"] != K_CIL:
+        if c["tipo"] != K_CIL or paralelo(c["eje"], d):
             continue
         f = c["f"]
         p = v(f.PointOnFace)
