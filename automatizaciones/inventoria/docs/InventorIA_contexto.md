@@ -1244,3 +1244,21 @@ Inventario de sólo lectura con `info_instalacion.py` (deja `Generados\_info\inf
 - Vigilante: el acceso directo del escritorio apuntaba al vigilante viejo (OneDrive\Documentos\
   InventorIA_viejo_para_borrar); corregido con `arreglar_acceso_vigilante.py` (copia del .lnk en `_staging`).
   `cerrar_vigilante_viejo.py` cierra el viejo si quedó abierto. Último pedido: p401.
+
+### L3N — transportes nuevos ubicados en el layout (28/10/2026 noche, p402-p407)
+
+- Ensamble del proveedor: grupos T1 (2 cadenas L1705 + 2 derivadores), T2 (2 cadenas AT_900 L1400), T3 (5 cadenas L1400,
+  3 L2800, 1 derivador), módulo envolvedora previa (rodilleras 4x1935 + 1x2975 y envolvedora 2800x2800). Altura de
+  cadena sobre el piso del proveedor: T3 718 mm, T2 703, T1 678 (rodilleras 640); nuestras camas 626.
+  OJO: la Transformation de una subocurrencia (proxy) ya viene en coordenadas del ensamble principal (no multiplicar
+  por la del grupo). Relevamientos: `relevar_ensamble_jt.py` -> `ensamble_jt.json` / `ensamble_jt_n5.json`.
+- Plan (`l3n_plan_reutilizados.py`, en la nube) -> `plan_reutil.json`; `l3n_transportes_reutilizados.py --rehacer`
+  arma `Celdas_IA\Transportes_reutilizados\Linea_Pallets_Reutilizada.iam` (módulos referenciados desde la carpeta del
+  proveedor, sin copiar) y la inserta en `LayoutL3N_Celdas.iam` como `IA_Linea_Pallets_Reutilizada` (respaldo en
+  `Celdas_IA\_respaldos\`), ocultando sólo en el layout las 13 camas reemplazadas. Cadena a 626 mm (patas -52 a -92).
+- Asignación: C-B (4958 disp.) L2800+L1400 = 4208 (faltan 750); B-A (6666) 2xL2800 = 5608 (faltan 1058);
+  salida (14286 hasta MP402) 3xL1400 + L1400 + 2xT2 + 2xT1 = 12591 (faltan 1695); post envolvedora (3282)
+  rodillera 2975 (faltan 307). Sin usar: 3 derivadores, 4 rodilleras 1935, envolvedora del proveedor.
+- Choques por caja: extremos de módulo (cabezales) se meten 140-230 mm en las giratorias A, B y C; módulo B-A a 55 mm
+  de la cinta BM2000 de la celda B (correr 50 mm o centrar por cadena). Fotos: `transportes_nuevos\fotos\reutil_*.png`.
+  Último pedido: p407.
