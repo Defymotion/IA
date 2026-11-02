@@ -1313,3 +1313,21 @@ Inventario de sólo lectura con `info_instalacion.py` (deja `Generados\_info\inf
   589 (T2 en línea -25), envolvedora MP402 centrada sobre el módulo T3_2 (X 6562, eje de la línea).
   Choques v2: sólo uniones entre módulos (como en el proveedor) y el buffer de cartones apoyado sobre la Pasarela
   (chapa de piso rayada de Linea_Pallets, 1 mm): confirmar si es un pasillo a dejar libre. Último pedido: p428.
+
+### L3N — pasillos y envolvedora definitiva (02/11/2026 tarde, p429-p434)
+
+- Pedido del usuario: (1) pasillo para transpaleta con pallet cargado entre T3 y la pared norte (zona de la envolvedora) y
+  (2) entre el final de la línea y la pared este; (3) zona libre para que pase y maniobre un autoelevador al sur del T3
+  (X ~5,0-7,8 m), que sigue hacia el oeste por el carril entre T3 y la reja de la cinta de cajas.
+- Paredes medidas con rayos (`medir_pasillos.py`, FindUsingRay del ensamble; OJO: no filtra bien lo oculto dentro de
+  subensambles y los rayos pasan por debajo/encima de los transportes -> los anchos se calcularon con cajas): pared norte
+  Z -38590, pared este X 16036.
+- Envolvedora MP402: pórtico con vigas de piso paralelas a la línea (no se puede girar 90°); sobre el T3 siempre deja
+  1,04 m al norte o invade la zona del autoelevador al sur. -> v4 (`plan_liviano_v4.json` -> `LayoutL3N_liviano_v4.iam`):
+  envolvedora DESPUÉS del desvío, sobre T1 S-11219 (eje X 11600, Z -32920); retiro del pallet envuelto en S-11226 (final);
+  T2 S-11259 (en línea) queda de repuesto, junto con el L1400 de T3. Cadenas: S-11217 termina en X 10408, S-11219
+  10583-12141, S-11226 12156-14094 (caja hasta 14248).
+- Anchos libres v4: pasillo norte 2,21 m; pasillo este 1,79 m; zona autoelevador 3,5 m x >4,5 m; carril 3,7 m.
+  Choques v4: sólo uniones entre módulos y el buffer sobre la chapa rayada de piso. Imagen `viabilidad\v4_pasillos.png`.
+- A confirmar: radio de giro del brazo/mástil de la MP402 (en el modelo hasta ~1,6 m con el buje a 240-320 mm de altura):
+  mientras envuelve, la cruz S-11217 y el comienzo del retiro tienen que estar vacíos. Último pedido: p434.
