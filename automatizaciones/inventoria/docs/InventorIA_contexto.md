@@ -1295,3 +1295,21 @@ Inventario de sólo lectura con `info_instalacion.py` (deja `Generados\_info\inf
 - Imágenes de viabilidad: `Analisis\L3N\viabilidad\viab_corte_cadenas/orientacion_planta/alturas/propuesta/
   orientacion_celdas/reforma_cruz.png`. Pendiente: ubicar la envolvedora, plano/presentación, reforma (cuando se pida),
   medir en planta alturas de camas B/C y mesas A. Último pedido: p423.
+
+### L3N — colisiones y envolvedora (02/11/2026 tarde, p424-p428)
+
+- `l3n_colisiones.py <iam> <salida>` (sólo lectura): hojas visibles por grupo (5.400, ~10 min en enumerar), filtro por cajas
+  y `AnalyzeInterference` sólo en pares candidatos (ensamble estático). Envolvedora MP402: pórtico 2000 (en el sentido de
+  la línea) x 3800 x 3530 de alto, brazo giratorio con eje en el centro (local X -16, Y 12, Z arriba);
+  archivo `ADECO 12-12-25\Envolvedora MP402\...\MP402.iam`.
+- Choques reales del v1: T1 atravesaba la pared este (cara en X 16035) ~560 mm; cruz A contra el final de la celda A
+  (barrera IFM emisora en X -7425..-7375, columna de reja este, última mesa de rolos que termina en X -7481);
+  columna norte del pórtico nuevo del riel contra la pared (cara en X -11664); cruz S-11217 contra T2 en línea (la punta
+  de la cruz girada lleva topes/tapas: +120 mm de separación).
+- v2 (`plan_liviano_v2.json` -> `Celdas_IA\LayoutL3N_liviano_v2.iam`, extensión `..._v2.iam`): toda la línea +300 en X
+  (cruz A libre de la barrera; los pallets de B/C quedan 192 mm fuera del primer rodillo de la cruz), se saca un módulo
+  L1400 de T3 (queda de repuesto) y lo de después del T3 se corre -1404 (T1 termina a ~420 mm de la pared), +120 entre la
+  cruz S-11217 y el T2 en línea, pórtico nuevo +60 en X, orígenes de módulo en el piso (Y 0): cadenas a 564 y T2 de costado
+  589 (T2 en línea -25), envolvedora MP402 centrada sobre el módulo T3_2 (X 6562, eje de la línea).
+  Choques v2: sólo uniones entre módulos (como en el proveedor) y el buffer de cartones apoyado sobre la Pasarela
+  (chapa de piso rayada de Linea_Pallets, 1 mm): confirmar si es un pasillo a dejar libre. Último pedido: p428.

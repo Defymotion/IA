@@ -27,7 +27,7 @@ LAY = CELDAS / "LayoutL3N_Celdas.iam"
 SAL = CELDAS / plan["salida"]
 LIV = CELDAS / plan["carpeta_livianos"]
 RDIR = CELDAS / "Robot_Aereo"
-EXT = RDIR / "Extension_riel_buffer_cartones.iam"
+EXT = RDIR / plan.get("ext_archivo", "Extension_riel_buffer_cartones.iam")
 PROV = Path(r"C:\DEFYMOTION\L3N\Relevamiento_planta\2026-10-28\30-07-26-E_01294_A_1_Adecoagro___Anteproyecto_de_Paletizado"
             r"\30-07-26-E_01294_A_1_Adecoagro___Anteproyecto_de_Paletizado")
 log = {"avisos": [], "tipos": {}, "instancias": {}, "otros": {}}
@@ -233,6 +233,11 @@ try:
         o.Grounded = True
         S(lambda: setattr(o, "Name", it["nombre"]))
         log["instancias"][it["nombre"]] = caja(o.RangeBox)
+    for it in plan.get("archivos", []):          # equipos sueltos (p. ej. la envolvedora)
+        o = occs.Add(it["archivo"], matriz(it["M"]))
+        o.Grounded = True
+        S(lambda: setattr(o, "Name", it["nombre"]))
+        log["instancias"][it["nombre"]] = caja(o.RangeBox)
     # ------------------------------------------------------------ 3. extensión del riel + buffer de cartones
     rob = next((o for o in inv._items(occs) if o.Name.startswith("Robot_Aereo_Pallets")), None)
     rs = {x.Name: x for x in inv._items(rob.SubOccurrences)}
@@ -257,7 +262,7 @@ try:
             poner(f"Riel_ext_{i + 1}", riel, [1, 0, 0, x, 0, 1, 0, ex["y_riel"], 0, 0, 1, ex["z_riel_centro"]])
         for nuevo, base in (("Columna_ext_a", "Columna_3a"), ("Columna_ext_b", "Columna_3b"), ("Travesano_ext", "Travesano_3")):
             r = rs[base]
-            poner(nuevo, r.Definition.Document.FullFileName, desplazada(r.Transformation, 0, 0, ex["dz_portico"]))
+            poner(nuevo, r.Definition.Document.FullFileName, desplazada(r.Transformation, ex.get("dx_portico", 0.0), 0, ex["dz_portico"]))
         r = rs["Pila1_pallet_1"]
         poner("Buffer_cartones_pallet", r.Definition.Document.FullFileName, desplazada(r.Transformation, 0, 0, ex["dz_buffer"]))
         for k in range(1, 5):
