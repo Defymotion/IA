@@ -1262,3 +1262,36 @@ Inventario de sólo lectura con `info_instalacion.py` (deja `Generados\_info\inf
 - Choques por caja: extremos de módulo (cabezales) se meten 140-230 mm en las giratorias A, B y C; módulo B-A a 55 mm
   de la cinta BM2000 de la celda B (correr 50 mm o centrar por cadena). Fotos: `transportes_nuevos\fotos\reutil_*.png`.
   Último pedido: p407.
+
+### L3N — viabilidad de la redistribución y layout liviano (02/11/2026, p413-p423)
+
+- Layout del usuario (`Celdas_IA\LayoutL3N_Celdas.iam`, 441 MB, NO se toca): cruz S-11211 en lugar de la "giratoria A"
+  (en planta A NO tiene giratoria; B y C sí), T3 recto en X, cruz S-11256, cruz S-11217, T2 y T1.
+- Cómo funcionan las cruces (3D del proveedor): 3 cadenas ASA 50-2 a ±502 y 7 rodillos Ø80 x 1200 (eje paralelo a las
+  cadenas, y = -603 [traspaso], -301, -199, -97, 199, 301, 403) que suben ~27 mm con excéntricas (abajo -12 mm). El pallet
+  no gira; cada cruz recibe en un modo (cadena o rodillos) y entrega en el otro. Rodillo de traspaso del lado del vecino.
+- Apoyo: AT_1000 (T3, T1, cruces ±500) sólo sirve con el lado de 1200 de costado; AT_900 (T2, ±450) acepta el 1000.
+  Los pallets de B/C llegan 1000 en X (sus giratorias los giran); los de A llegan 1200 en X -> cadena externa en el borde.
+  Soluciones (fuera de la celda): reforma a ±450 (patas AT_900 + eje más corto; en cruces correr paquetes 52 mm y sacar
+  el rodillo de y=403; todo atornillado en el 3D, se puede hacer en planta) o cruz A sobre base giratoria / girador.
+  El usuario: "se puede hacer pero requiere intervenir los transportes"; reformas NO todavía.
+- Alturas: regla del proveedor = en línea mismo nivel; el que recibe de rodillos +25 (T2 a 589 vs 564). En el layout del
+  usuario quedaron 547/507/532/507; disposición final: todo 547 salvo T2 de costado 572 (T2 en línea bajar 25).
+- Disposición final (`plan_final.json` / `plan_liviano.json`, en la nube `l3n_plan` ad hoc): S-11256 +40 en Y; T2 S-11261
+  de costado (misma relación que el proveedor con S-11256, eje X 10640, cadenas Z -34978..-33589); S-11217 girada (cadenas
+  en X, eje Z -32920, traspaso hacia -Z, corre al revés); T2 S-11259 en línea (Y origen -42); grupo T1 +(-1246, +40, +929).
+- Robot aéreo: riel +2 m (Z -53550 -> -55550, 347 mm a la pared este), pórtico nuevo en Z -55475 y buffer de cartones
+  (pallet + pila 1200x1000x900 + 4 guías) centrado en X -10582, Z -54797 (600 mm a la pared este):
+  `Celdas_IA\Robot_Aereo\Extension_riel_buffer_cartones.iam`.
+- PESO: `analizar_peso.py` (Apprentice, sin Inventor; ProgID "Inventor.ApprenticeServer"): transportes = 9.900 piezas,
+  3.300 archivos, 3,2 GB (cada instancia del proveedor es una copia _1/_2/_3 distinta) + .iam de 441 MB (caché express).
+  p414 (`l3n_layout_final.py`, copia del layout pesado + relevamiento de choques) dejó a Inventor sin RAM (RPC caído);
+  la copia incompleta quedó en `Celdas_IA\_para_borrar\`.
+- `l3n_layout_liviano.py <plan>` [--prueba PN]: una pieza shrinkwrap por tipo (cuerpos múltiples, sin piezas < 80 mm,
+  sin agujeros, vínculo roto; enums leídos de RxInventor.tlb) en `Celdas_IA\Transportes_livianos\` (10 tipos, 21-48 MB,
+  ~3 min) y arma `Celdas_IA\LayoutL3N_liviano.iam` (56 MB; 701 archivos, 630 MB): paredes, celdas, línea, robot (posiciones
+  leídas con Apprentice del layout del usuario), 15 módulos livianos y la extensión. Oculta la giratoria final y la MP402
+  (envolvedora a reubicar). Fotos `transportes_nuevos\fotos\liviano_*`. Lo que más pesa ahora son las celdas (5.500 piezas).
+- Imágenes de viabilidad: `Analisis\L3N\viabilidad\viab_corte_cadenas/orientacion_planta/alturas/propuesta/
+  orientacion_celdas/reforma_cruz.png`. Pendiente: ubicar la envolvedora, plano/presentación, reforma (cuando se pida),
+  medir en planta alturas de camas B/C y mesas A. Último pedido: p423.
