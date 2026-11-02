@@ -238,6 +238,13 @@ try:
         o.Grounded = True
         S(lambda: setattr(o, "Name", it["nombre"]))
         log["instancias"][it["nombre"]] = caja(o.RangeBox)
+    for pz in plan.get("prismas", []):           # volúmenes de reserva (p. ej. espacio para el pallet cautivo)
+        ruta = prisma(pz["nombre"], pz["sx"], pz["sy"], pz["sz"], tuple(pz.get("colores", ())))
+        c = pz["centro_base"]
+        o = occs.Add(str(ruta), matriz([1, 0, 0, c[0], 0, 1, 0, c[1], 0, 0, 1, c[2]]))
+        o.Grounded = True
+        S(lambda: setattr(o, "Name", pz["nombre"]))
+        log["instancias"][pz["nombre"]] = caja(o.RangeBox)
     # ------------------------------------------------------------ 3. extensión del riel + buffer de cartones
     rob = next((o for o in inv._items(occs) if o.Name.startswith("Robot_Aereo_Pallets")), None)
     rs = {x.Name: x for x in inv._items(rob.SubOccurrences)}

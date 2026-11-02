@@ -1331,3 +1331,18 @@ Inventario de sólo lectura con `info_instalacion.py` (deja `Generados\_info\inf
   Choques v4: sólo uniones entre módulos y el buffer sobre la chapa rayada de piso. Imagen `viabilidad\v4_pasillos.png`.
 - A confirmar: radio de giro del brazo/mástil de la MP402 (en el modelo hasta ~1,6 m con el buje a 240-320 mm de altura):
   mientras envuelve, la cruz S-11217 y el comienzo del retiro tienen que estar vacíos. Último pedido: p434.
+
+### L3N — v5: un solo giro y envolvedora girada 90° (02/11/2026 tarde, p435-p437)
+
+- Propuesta del usuario: en vez del zigzag, doblar una sola vez en la esquina y girar la envolvedora 90°; después va un
+  sistema de "pallet cautivo" (se eleva el pallet envuelto y se le inserta debajo un pallet estándar para el almacén
+  inteligente) -> reservar espacio.
+- v5 (`plan_liviano_v5.json` -> `LayoutL3N_liviano_v5.iam`): T3 de 8 módulos otra vez (vuelve el L1400), cruz S-11256 en
+  la esquina (X 10090-12038 de cadena), bajada hacia +Z con los dos T2 (AT_900, ±450: sirve para las dos orientaciones
+  de pallet): S-11261 (Z -34978..-33589) y S-11259 (Z -33574..-32185), eje X 10940, cadena a 589. Envolvedora MP402
+  girada 90° (eje local X -> +Z) sobre S-11259; reserva para el pallet cautivo 3,5 x 5,0 m (`Reserva_pallet_cautivo_3500x5000`,
+  chapa verde de 10 mm) desde Z -31880. Quedan sin usar: cruz S-11217 y los dos L1705 de T1. `l3n_layout_liviano.py`
+  admite ahora "prismas" (volúmenes de reserva).
+- Espacios v5: pasillo norte 2,21 m; este >= 3,2 m; zona autoelevador 4,1 m x >4,5 m; carril 3,7 m. Choques: sólo
+  uniones entre módulos y el buffer de cartones sobre la chapa de piso. Imagen `viabilidad\v5_pasillos.png`.
+  Mientras envuelve, el T2 S-11261 (entrada) tiene que estar vacío (barrido del brazo). Último pedido: p437.
