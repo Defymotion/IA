@@ -1,6 +1,6 @@
 """Sólo lectura: abre un ensamble (p. ej. el importado del JT) y lista las ocurrencias hasta N niveles con su caja
 (mm, coordenadas del ensamble) y su matriz. Cierra el ensamble al terminar si lo abrió.
-Uso: python relevar_ensamble_jt.py <ensamble.iam> <salida.json> [--niveles 2]"""
+Uso: python relevar_ensamble_jt.py <ensamble.iam> <salida.json> [--niveles 2] [--solo prefijo_de_primer_nivel]"""
 import json
 import sys
 import time
@@ -13,6 +13,7 @@ import inventor_mcp as inv  # noqa: E402
 S = inv._safe
 ruta, salida = Path(sys.argv[1]), Path(sys.argv[2])
 NIV = int(sys.argv[sys.argv.index("--niveles") + 1]) if "--niveles" in sys.argv else 2
+SOLO = sys.argv[sys.argv.index("--solo") + 1] if "--solo" in sys.argv else ""
 app = inv._inventor(start_if_needed=False)
 T0 = time.time()
 ya = next((d for d in inv._items(app.Documents) if S(lambda d=d: Path(d.FullFileName).resolve() == ruta.resolve(), False)), None)
@@ -29,6 +30,8 @@ def caja(b):
 def walk(occs, nivel):
     out = []
     for o in inv._items(occs):
+        if nivel == 1 and SOLO and not str(o.Name).startswith(SOLO):
+            continue
         e = {"n": str(o.Name), "doc": S(lambda: Path(o.Definition.Document.FullFileName).name),
              "caja": S(lambda: caja(o.RangeBox)), "vis": S(lambda: o.Visible),
              "M": S(lambda: [round(o.Transformation.Cell(i, j) * (10 if j == 4 else 1), 3) for i in (1, 2, 3) for j in (1, 2, 3, 4)])}

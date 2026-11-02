@@ -20,7 +20,7 @@ REHACER = "--rehacer" in sys.argv
 CELDAS = Path(r"C:\DEFYMOTION\L3N\Celdas_IA")
 LAY = CELDAS / "LayoutL3N_Celdas.iam"
 DIR = CELDAS / "Transportes_reutilizados"
-SUB = DIR / "Linea_Pallets_Reutilizada.iam"
+SUB = DIR / plan.get("archivo_sub", "Linea_Pallets_Reutilizada.iam")
 NOMBRE_OCC = "IA_Linea_Pallets_Reutilizada"
 REEMPLAZADAS = ["IA_Cama_BC_1", "IA_Cama_L2920_3", "Roller_Conveyor_Straight_400V_FlatBelt:2",
                 "Roller_Conveyor_Straight_400V_FlatBelt:7", "IA_Cama_L2648_5", "Roller_Conveyor_Straight_400V_FlatBelt:4",
@@ -85,27 +85,33 @@ try:
     o.Grounded = True
     o.Name = NOMBRE_OCC
     log["caja_linea_nueva"] = caja(o.RangeBox)
-    # ocultar las camas reemplazadas (sólo visibilidad en el layout)
-    lp = next((x for x in inv._items(cd.Occurrences) if x.Name == "Linea_Pallets:1"), None)
+    # visibilidad sólo en el layout: primero se restituyen las camas de la versión anterior, después se oculta
+    # lo que reemplaza este plan (plan["ocultar"] = {ocurrencia: [subocurrencias]})
+    OCULTAR = plan.get("ocultar", {"Linea_Pallets:1": REEMPLAZADAS})
     ocultas = []
-    if lp is not None:
-        for s in inv._items(lp.SubOccurrences):
-            if s.Name in REEMPLAZADAS:
-                S(lambda s=s: setattr(s, "Visible", False))
-                ocultas.append(s.Name)
-    log["camas_ocultas"] = ocultas
+    for x in inv._items(cd.Occurrences):
+        if x.Name == "Linea_Pallets:1":
+            for s in inv._items(x.SubOccurrences):
+                if s.Name in REEMPLAZADAS:
+                    S(lambda s=s: setattr(s, "Visible", True))
+        if x.Name in OCULTAR:
+            for s in inv._items(x.SubOccurrences):
+                if s.Name in OCULTAR[x.Name]:
+                    S(lambda s=s: setattr(s, "Visible", False))
+                    ocultas.append(x.Name + "/" + s.Name)
+    log["ocultas"] = ocultas
     # choques por caja de cada módulo contra subocurrencias de celdas y robot aéreo
     otras = []
     for x in inv._items(cd.Occurrences):
         if x.Name in ("Celda_A_L3N:1", "Celda_B_existente:1", "Celda_C_existente:1", "Robot_Aereo_Pallets:1", "Paredes:1"):
             for s in inv._items(x.SubOccurrences):
-                if S(lambda s=s: s.Visible, True):
+                if S(lambda s=s: s.Visible, True) and "Cinta_Llegada" not in s.Name and "Layout[" not in s.Name:
                     c = S(lambda s=s: caja(s.RangeBox), None)
                     if c:
                         otras.append((x.Name + "/" + s.Name, c))
         if x.Name == "Linea_Pallets:1":
             for s in inv._items(x.SubOccurrences):
-                if s.Name not in REEMPLAZADAS and S(lambda s=s: s.Visible, True):
+                if S(lambda s=s: s.Visible, True):
                     c = S(lambda s=s: caja(s.RangeBox), None)
                     if c:
                         otras.append(("Linea_Pallets/" + s.Name, c))
