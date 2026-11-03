@@ -218,7 +218,7 @@ try:
         if n not in otros:
             log["avisos"].append(f"no está {n} en el layout del usuario")
             continue
-        o = occs.Add(otros[n]["archivo"], matriz(otros[n]["M"]))
+        o = occs.Add(plan.get("reemplazos", {}).get(n, otros[n]["archivo"]), matriz(otros[n]["M"]))
         o.Grounded = True
         S(lambda: setattr(o, "Name", n.split(":")[0]))
         for s in inv._items(o.SubOccurrences) if n in plan.get("ocultar_sub", {}) else []:

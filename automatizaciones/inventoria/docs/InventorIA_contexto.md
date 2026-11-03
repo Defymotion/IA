@@ -1361,3 +1361,16 @@ Inventario de sólo lectura con `info_instalacion.py` (deja `Generados\_info\inf
   (reforma) o usar rodillos. Mientras envuelve, la salida 1 tiene que estar vacía (barrido del brazo). Retiro con
   autoelevador desde la salida 2. Etapa 2: pallet cautivo en la reserva verde. Choques v6: sólo uniones entre módulos.
   Imagen `viabilidad\v6_rutas.png`. Último pedido: p441.
+
+### L3N — v7: cruz A alineada con las camas B/C (03/11/2026, p442-p446)
+
+- Pedido: los rodillos de la cruz A tienen que quedar alineados con la cama de B/C (el +300 de la v2 los desalineaba);
+  para eso se corre hacia atrás la cama de rolos interna de la celda A.
+- `l3n_celda_a_v6.py <plan>`: copia `Celdas_IA\Celda_A_L3N_v6.iam` (el original queda igual) con las 3 mesas de rolos
+  CdR1512, el pallet, la barrera de salida IFM (emisor/receptor, brazos, sensores) y la reja este a -300 mm en X; paneles
+  4 de las rejas sur y norte interna a -150. Además borró `Pasarela:1` (franja rayada, era sólo un marcador) de
+  `Linea_Pallets.iam` (respaldo en `Celdas_IA\_respaldos\`).
+- v7 (`plan_liviano_v7.json` -> `LayoutL3N_liviano_v7.iam`): transportes de vuelta a la posición del usuario en X (cruz A
+  con rodillos en X -7141..-5941, cama B/C X -7220..-5847), celda A reemplazada por la copia v6 (`reemplazos` en el plan).
+  Choques v7: sólo uniones entre módulos. El robot de la celda A tiene que reprogramar la estación de paletizado (300 mm).
+  Último pedido: p446.
