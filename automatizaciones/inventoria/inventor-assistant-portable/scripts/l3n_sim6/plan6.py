@@ -419,6 +419,62 @@ if girB:
     obj("SIM_C_Gir_Deck", GB["f"], mm(tr(DXC, 0, DZC), GB["M"]), rol="giratoria")
     GIR["SIM_C_Gir_Deck"] = ("GirC", L.ZONAS["GirC"][0:2])
 OCULTAR_EN_OBJ = {"SIM_C_Gir_Base": [GB["n"].split("/", 1)[1]]} if girB else {}
+# robots de las celdas B y C (no se mueven): en una pose de reposo armada sobre su pallet, con el gripper en la brida.
+# En el CAD de las celdas existentes el KUKA y el gripper quedan desarmados (subensambles flexibles): se ocultan.
+from robot import Robot  # noqa: E402
+from config5 import _links, VEL_B  # noqa: E402
+from comun import yaw_of  # noqa: E402
+RBC = {}
+_rbc = Path(ARG[ARG.index("--robots-bc") + 1]) if "--robots-bc" in ARG else AQUI / "robots_bc.json"
+if _rbc.exists():
+    RBC = json.load(open(_rbc, encoding="utf-8"))
+KB = REL["kuka_B"]
+GBF = REL["gripper_B"]
+DCEL = {"B": (0.0, 0.0), "C": (L.EST["C"]["est"][0] - L.EST["B"]["est"][0], L.EST["C"]["est"][2] - L.EST["B"]["est"][2])}
+for cel, top in (("B", "Celda_B_existente"), ("C", "Celda_C_existente")):
+    info = next((v for k, v in RBC.items() if k.startswith(top)), None)
+    kuka = next((r for r in (info or {}).get("robots", []) if r["n"].upper().startswith("KUKA")), None)
+    grip = next((r for r in (info or {}).get("robots", []) if r["n"].upper().startswith("GRIPPER")), None)
+    if kuka:
+        T = kuka["M"] + [[0, 0, 0, 1]]
+        kname = kuka["n"]
+        links_n = [h["n"] for h in kuka["hijos"]]
+    else:
+        T = mm(tr(DCEL[cel][0], 0, DCEL[cel][1]), KB["M_layout"])
+        kname = KB["n"]
+        links_n = list(KB["links"])
+        DIAG["avisos"].append(f"robot {cel}: sin relevamiento, uso el de B corrido")
+    rob = Robot(cel, T, _links(KB), (877.5, -438.8, 52.0), [[1, 0, 0], [0, 1, 0], [0, 0, 1]], VEL_B, B_cfg.robot.GL if hasattr(B_cfg.robot, "GL") else None)
+    pal = L.EST[cel]["est"]
+    q0 = [0.0, -40.0, 90.0, 0.0]
+    psi0 = yaw_of(rob.poses(q0)["gripper"])
+    GLb = GBF["caja_local"]                 # caja del gripper en sus coordenadas: se centra sobre el pallet, 250 mm arriba
+    obj_ = [pal[0], pal[1] + 152.0 + H_CARGA[cel] + 1100.0, pal[2]]
+    for _it in range(4):
+        q, e = rob.q_para(rob.gripper_pose(psi0, obj_), q0)
+        Mg = rob.poses(q)["gripper"]
+        esq = [[sum(Mg[i][k] * c[k] for k in range(3)) + Mg[i][3] for i in range(3)]
+               for c in [[x, y, z] for x in (GLb[0], GLb[3]) for y in (GLb[1], GLb[4]) for z in (GLb[2], GLb[5])]]
+        cx = sum(p_[0] for p_ in esq) / 8
+        cz = sum(p_[2] for p_ in esq) / 8
+        ymin = min(p_[1] for p_ in esq)
+        obj_ = [obj_[0] + pal[0] - cx, obj_[1] + (pal[1] + 152.0 + H_CARGA[cel] + 250.0) - ymin, obj_[2] + pal[2] - cz]
+    q, e = rob.q_para(rob.gripper_pose(psi0, obj_), q0)
+    if e > 1.0:
+        q = q0
+        DIAG["avisos"].append(f"robot {cel}: no llego al reposo sobre el pallet (error {e:.1f}), uso q0")
+    P = rob.poses(q)
+    DIAG.setdefault("robots_reposo", {})[cel] = {"q": [round(v, 1) for v in q], "gripper": [round(P["gripper"][i][3]) for i in range(3)]}
+    for n_, v in KB["links"].items():
+        k_ = "V0" + n_.split("_V0")[-1][:1]
+        if k_ in ("V02", "V03", "V04", "V05"):
+            obj(f"SIM_{cel}_{k_}", v["f"], P[k_], rol="robot_fijo")
+    for n_ in links_n:
+        if any(f"_V0{k}" in n_ for k in (2, 3, 4, 5)):
+            OCULTAR.append(f"{top}:1/{kname}/{n_}")
+    obj(f"SIM_{cel}_Gripper", GBF["f"], P["gripper"], rol="gripper_fijo")
+    OCULTAR_EN_OBJ[f"SIM_{cel}_Gripper"] = ["Bandeja*"]
+    OCULTAR.append(f"{top}:1/{grip['n'] if grip else 'Gripper_ADECO2_V1:1'}")
 # envolvedora
 obj("SIM_MP402_Rotor", mp["MP402_Rotor:1"]["f"], M_ROTOR, rol="envolvedora")
 obj("SIM_MP402_Carro", mp["MP402_Carro:1"]["f"], M_CARRO_MP, rol="envolvedora")

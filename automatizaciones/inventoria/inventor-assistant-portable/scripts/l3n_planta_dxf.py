@@ -28,7 +28,28 @@ GRUPOS = {
     "ROBOT_AEREO_EXT": ("Extension_",),
     "RESERVA_ETAPA2": ("Etapa2_",),
     "CELDA_A": ("Celda_A_L3N",),
+    "CELDA_B": ("Celda_B_existente",),
+    "CELDA_C": ("Celda_C_existente",),
+    "LINEA": ("Linea_Pallets",),
+    "ROBOT_AEREO": ("Robot_Aereo_Pallets",),
 }
+if "--grupos" in sys.argv:
+    _g = sys.argv[sys.argv.index("--grupos") + 1].split(",")
+    GRUPOS = {k: v for k, v in GRUPOS.items() if k in _g}
+PREF = sys.argv[sys.argv.index("--prefijo") + 1] if "--prefijo" in sys.argv else "L3N_planta_nuevos"
+
+
+def ocultar_brazo(n):
+    """Celdas existentes: el KUKA y el gripper del CAD quedan desarmados (subensambles flexibles): en planta se
+    dejan la base del robot y se ocultan los ejes 2-5 y el gripper."""
+    for h in inv._items(n.SubOccurrences):
+        nm = h.Name.upper()
+        if nm.startswith("GRIPPER"):
+            S(lambda h=h: setattr(h, "Visible", False))
+        elif nm.startswith("KUKA"):
+            for s in inv._items(h.SubOccurrences):
+                if any(f"_V0{k}" in s.Name for k in (2, 3, 4, 5)):
+                    S(lambda s=s: setattr(s, "Visible", False))
 log = {"avisos": [], "grupos": {}}
 app = inv._inventor(start_if_needed=False)
 tg = app.TransientGeometry
@@ -57,6 +78,8 @@ try:
                     h = next((h for h in inv._items(n.SubOccurrences) if h.Name == s.Name), None)
                     if h is not None:
                         S(lambda h=h: setattr(h, "Visible", False))
+            if g in ("CELDA_B", "CELDA_C"):
+                ocultar_brazo(n)
         ruta = TMP / f"Planta_{g}.iam"
         if ruta.exists():
             ruta.unlink()
@@ -70,7 +93,37 @@ try:
         S(lambda: setattr(sh, "Name", g))
         W, H = sh.Width, sh.Height
         t1 = time.time()
-        v = sh.DrawingViews.AddBaseView(asm, tg.CreatePoint2d(W / 2, H / 2), 1.0 / ESC, inv.K_VIEW_TOP, inv.K_STYLE_HLR)
+        v = None
+        for intento in range(3):
+            try:
+                asm.Update()
+                v = sh.DrawingViews.AddBaseView(asm, tg.CreatePoint2d(W / 2, H / 2), 1.0 / ESC, inv.K_VIEW_TOP, inv.K_STYLE_HLR)
+                break
+            except Exception as ex:  # noqa: BLE001
+                log["avisos"].append(f"{g}: AddBaseView intento {intento + 1}: {ex!r}"[:200])
+                time.sleep(3)
+        if v is None and len(occs) == 1:
+            # plan B: vista del documento de la celda en sus coordenadas (la matriz de la ocurrencia va al resultado)
+            d1 = app.Documents.Open(occs[0].ReferencedDocumentDescriptor.FullDocumentName, False)
+            S(lambda: d1.Update())
+            M1 = occs[0].Transformation
+            try:
+                if g in ("CELDA_B", "CELDA_C"):
+                    for h in inv._items(d1.ComponentDefinition.Occurrences):
+                        nm = h.Name.upper()
+                        if nm.startswith("GRIPPER"):
+                            S(lambda h=h: setattr(h, "Visible", False))
+                        elif nm.startswith("KUKA"):
+                            for s2 in inv._items(h.SubOccurrences):
+                                if any(f"_V0{k}" in s2.Name for k in (2, 3, 4, 5)):
+                                    S(lambda s2=s2: setattr(s2, "Visible", False))
+                v = sh.DrawingViews.AddBaseView(d1, tg.CreatePoint2d(W / 2, H / 2), 1.0 / ESC, inv.K_VIEW_TOP, inv.K_STYLE_HLR)
+                log.setdefault("directos", {})[g] = [[M1.Cell(r, c) * (10.0 if c == 4 else 1.0) for c in range(1, 5)] for r in range(1, 4)]
+                log["avisos"].append(f"{g}: vista directa del documento (coordenadas de la celda)")
+            except Exception as ex:  # noqa: BLE001
+                log["avisos"].append(f"{g}: vista directa: {ex!r}"[:200])
+        if v is None:
+            continue
         S(lambda: setattr(v, "ShowLabel", False))
         # transformación modelo (cm) -> hoja (cm) con 3 puntos
         pts = {}
@@ -82,7 +135,7 @@ try:
         hojas.append(g)
         print(f"[{time.time() - T0:6.0f} s] {g}: {len(occs)} ocurrencias, vista {log['grupos'][g]['vista_s']} s", flush=True)
     ext = ".dwg" if str(plantilla).lower().endswith(".dwg") else ".idw"
-    idw = SAL / f"L3N_planta_nuevos_inventor{ext}"
+    idw = SAL / f"{PREF}_inventor{ext}"
     if idw.exists():
         idw.unlink()
     ddoc.SaveAs(str(idw), False)
@@ -93,9 +146,9 @@ try:
     S(lambda: tr.HasSaveCopyAsOptions(ddoc, ctx, opts))
     S(lambda: opts.Add("Sheet_Range", 14082))          # todas las hojas
     data = app.TransientObjects.CreateDataMedium()
-    data.FileName = str(SAL / "L3N_planta_nuevos.dxf")
+    data.FileName = str(SAL / f"{PREF}.dxf")
     tr.SaveCopyAs(ddoc, ctx, opts, data)
-    log["dxf"] = sorted(str(p) for p in SAL.glob("L3N_planta_nuevos*.dxf"))
+    log["dxf"] = sorted(str(p) for p in SAL.glob(f"{PREF}*.dxf"))
 except Exception as exc:  # noqa: BLE001
     log["error"] = repr(exc)
     log["traza"] = traceback.format_exc()[-2000:]
@@ -106,5 +159,5 @@ finally:
         S(lambda a=a: a.Close(True))
     S(lambda: setattr(app, "SilentOperation", False))
 log["s"] = round(time.time() - T0, 1)
-(SAL / "L3N_planta_nuevos_resultado.json").write_text(json.dumps(log, ensure_ascii=False, indent=1), encoding="utf-8")
+(SAL / f"{PREF}_resultado.json").write_text(json.dumps(log, ensure_ascii=False, indent=1), encoding="utf-8")
 print(json.dumps(log, ensure_ascii=False, indent=1))

@@ -6,7 +6,12 @@ from ezdxf.addons import Importer
 from ezdxf.math import Matrix44
 from ezdxf import bbox
 SRC='/mnt/user-data/uploads/L3N/Planos_IA/planta_dxf/'
-R=json.load(open(SRC+'L3N_planta_nuevos_resultado.json'))['grupos']
+FUENTES=[]   # (archivo dxf, grupo, dict del resultado, matriz directa o None)
+for pref in ('L3N_planta_nuevos','L3N_planta_existentes','L3N_planta_existentes_B'):
+    try: RR=json.load(open(SRC+pref+'_resultado.json'))
+    except FileNotFoundError: continue
+    for g,info in RR['grupos'].items():
+        FUENTES.append((SRC+f'{pref}_{g}.dxf', g, info, RR.get('directos',{}).get(g)))
 OUT=sys.argv[1]
 DA, IA = (3843.973, 1293.966), (-6503.2, -35622.3)
 def toD(X, Z):
@@ -17,34 +22,37 @@ doc.header['$LUNITS']=2
 msp=doc.modelspace()
 CAPAS={'TRANSPORTES':('DEFY_E1_TRANSPORTES_NUEVOS',30),'ENVOLVEDORA':('DEFY_E1_ENVOLVEDORA_MP402',6),
        'ROBOT_AEREO_EXT':('DEFY_E1_ROBOT_AEREO_EXTENSION_Y_BUFFER_CARTONES',4),'RESERVA_ETAPA2':('DEFY_E1_RESERVA_ETAPA2_PALLET_CAUTIVO',3),
-       'CELDA_A':('DEFY_E1_CELDA_A_NUEVA',5)}
+       'CELDA_A':('DEFY_E1_CELDA_A_NUEVA',5),'CELDA_B':('DEFY_E1_CELDA_B_EXISTENTE',140),'CELDA_C':('DEFY_E1_CELDA_C_EXISTENTE',140),
+       'LINEA':('DEFY_E1_CAMAS_Y_GIRATORIAS_EXISTENTES',140),'ROBOT_AEREO':('DEFY_E1_ROBOT_AEREO_EXISTENTE',140)}
 for n,c in [*CAPAS.values(),('DEFY_E1_PASILLOS_TRANSPALETA',8),('DEFY_E1_ZONA_AUTOELEVADOR',1),('DEFY_E1_RECORRIDO_REPOSICION_PALLETS',1),
             ('DEFY_E1_RECORRIDO_INSUMOS_CARTONES',14),('DEFY_E1_TEXTOS',7),('DEFY_E1_COTAS',7),('DEFY_E1_PUERTA_A_REUBICAR',2)]:
     if n not in doc.layers: doc.layers.add(n, color=c)
-for g,(lay,col) in CAPAS.items():
-    s=ezdxf.readfile(SRC+f'L3N_planta_nuevos_{g}.dxf')
-    o=R[g]['m2s_cm']['o']
-    imp=Importer(s, doc)
-    ents=list(s.modelspace())
-    imp.import_entities(ents, msp)
-    imp.finalize()
-    # (u, v) -> (v/1000 + cx, -u/1000 + cy)
-    cx=DA[0]-o[1]+IA[1]/1000.0*0-35.6223*0  # placeholder, se recalcula abajo
-    cx=3843.973 - o[1] - 35.6223
-    cy=1293.966 + o[0] - 6.5032
-    M=Matrix44([0,-0.001,0,0, 0.001,0,0,0, 0,0,1,0, cx,cy,0,1])
-    nuevos=[e for e in msp if e.dxf.layer=='Visible (ISO)' or getattr(e,'_nuevo',False)]
+def a_dwg(u, v, o, Md):
+    X = u - 1000.0*o[0]; Z = -v + 1000.0*o[1]
+    if Md:
+        X, Z = Md[0][0]*X + Md[0][2]*Z + Md[0][3], Md[2][0]*X + Md[2][2]*Z + Md[2][3]
+    return toD(X, Z)
+for f,g,info,Md in FUENTES:
+    lay,col=CAPAS[g]
+    s_=ezdxf.readfile(f)
+    o=info['m2s_cm']['o']
+    p0=a_dwg(0,0,o,Md); pu=a_dwg(1,0,o,Md); pv=a_dwg(0,1,o,Md)
+    M=Matrix44([pu[0]-p0[0],pu[1]-p0[1],0,0, pv[0]-p0[0],pv[1]-p0[1],0,0, 0,0,1,0, p0[0],p0[1],0,1])
+    imp=Importer(s_, doc); imp.import_entities(list(s_.modelspace()), msp); imp.finalize()
+    nuevos=[e for e in msp if e.dxf.layer=='Visible (ISO)']
     for e in nuevos:
-        try:
-            e.transform(M)
-        except Exception as ex:
-            e.destroy(); continue
-        e.dxf.layer=lay
-        e.dxf.color=256
-        e.dxf.linetype='BYLAYER'
+        try: e.transform(M)
+        except Exception: e.destroy(); continue
+        if g=='LINEA':      # en la línea vieja quedan equipos que ya no van (giratoria final, cama final, MP402 vieja)
+            try:
+                bb=bbox.extents([e],fast=True)
+                if bb.has_data and bb.center.y < 1292.4:
+                    e.destroy(); continue
+            except Exception: pass
+        e.dxf.layer=lay; e.dxf.color=256; e.dxf.linetype='BYLAYER'
         try: e.dxf.lineweight=-1
         except Exception: pass
-    print(g, len(nuevos))
+    print(g, len(nuevos), 'directo' if Md else '')
 if 'Visible (ISO)' in doc.layers:
     try: doc.layers.remove('Visible (ISO)')
     except Exception: pass

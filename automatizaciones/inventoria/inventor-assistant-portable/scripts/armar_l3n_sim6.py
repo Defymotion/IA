@@ -212,11 +212,11 @@ try:
         if not ob["vis"]:
             S(lambda: setattr(o, "Visible", False))
         for hijo in plan.get("ocultar_en_objeto", {}).get(nm, []):
-            h = next((h for h in its(o.SubOccurrences) if h.Name == hijo), None)
-            if h is None:
+            hs = [h for h in its(o.SubOccurrences) if (h.Name.startswith(hijo[:-1]) if hijo.endswith("*") else h.Name == hijo)]
+            if not hs:
                 log["avisos"].append(f"{nm}: no encontré el hijo {hijo}")
-            else:
-                S(lambda: setattr(h, "Visible", False))
+            for h in hs:
+                S(lambda h=h: setattr(h, "Visible", False))
         n_add += 1
         if n_add % 100 == 0:
             paso(f"{n_add} agregados")
@@ -224,7 +224,8 @@ try:
     esc.Update()
     occ = {o.Name: o for o in its(cd.Occurrences)}
     log["cajas_sim"] = {n: caja(occ[n]) for n in ("SIM_A_Gripper", "SIM_Lleno_A_0", "SIM_Lleno_B_0", "SIM_C_Gir_Base",
-                                                  "SIM_C_Gir_Deck", "SIM_B_Gir_Deck", "SIM_MP402_Rotor", "SIM_Carton_0999") if n in occ}
+                                                  "SIM_C_Gir_Deck", "SIM_B_Gir_Deck", "SIM_MP402_Rotor", "SIM_Carton_0999",
+                                                  "SIM_B_V02", "SIM_B_Gripper", "SIM_C_V02", "SIM_C_Gripper") if n in occ}
     esc.Save()
     log["escena"] = str(ESC)
 except SystemExit:

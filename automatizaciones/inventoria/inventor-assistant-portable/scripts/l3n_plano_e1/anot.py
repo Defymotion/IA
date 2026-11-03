@@ -34,7 +34,9 @@ for t_,X,Z,r in [("CELDA A (nueva): mesas, pallet, barrera y reja este 300 mm ha
                  ("T2 S-11259 + envolvedora MP402 girada 90°",13300,-32880,90),
                  ("Salida S-11219 / S-11226",12300,-30200,90),
                  ("RESERVA ETAPA 2\\Ppallet cautivo 3,5 x 5,0 m",10640,-27900,0),
-                 ("Extensión del riel del robot aéreo +2 m\\Py BUFFER DE CARTONES nuevo",-12900,-54800,0)]:
+                 ("Extensión del riel del robot aéreo +2 m\\Py BUFFER DE CARTONES nuevo",-12900,-54800,0),
+                 ("CELDA B (existente)",-11600,-43900,0),("CELDA C (existente)",-11600,-50500,0),
+                 ("Camas de rodillos B/C y giratorias existentes",-5300,-46500,0)]:
     texto(t_,X,Z,0.22,'DEFY_E1_TEXTOS',rot=r)
 # --- leyenda ---
 LEY=("MODIFICACIONES DEFYMOTION - ETAPA 1 (03/11/2026)\\P"

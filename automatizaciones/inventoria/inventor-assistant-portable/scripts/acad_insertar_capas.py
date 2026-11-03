@@ -1,5 +1,7 @@
 """Con AutoCAD LT de la PC: (1) convierte un DXF de capas nuevas a DWG; (2) COPIA un DWG de planta (el original no se
 toca) e inserta en la copia, explotado en 0,0 escala 1, el DWG de capas nuevas; guarda la copia.
+Opcional: --borrar <poligono.json> --capas-borrar "Capa1;Capa2": antes de insertar, en la copia borra lo que está
+COMPLETAMENTE dentro del polígono (x, y del DWG) y sólo en esas capas (bloquea las demás durante el borrado).
 Uso: python acad_insertar_capas.py <capas.dxf> <planta_original.dwg> <copia_salida.dwg> [--timeout 900]
 """
 import json
@@ -11,6 +13,8 @@ from pathlib import Path
 
 sys.stdout.reconfigure(encoding="utf-8")
 argv = sys.argv[1:]
+BORRAR = json.loads(Path(argv[argv.index("--borrar") + 1]).read_text(encoding="utf-8")) if "--borrar" in argv else None
+CAPAS_B = argv[argv.index("--capas-borrar") + 1].split(";") if "--capas-borrar" in argv else []
 TIMEOUT = float(argv[argv.index("--timeout") + 1]) if "--timeout" in argv else 900.0
 CAPAS, ORIG, COPIA = Path(argv[0]), Path(argv[1]), Path(argv[2])
 cands = []
@@ -26,7 +30,7 @@ EXE = cands[0]
 def correr(archivo, lineas, salida, nombre):
     scr = COPIA.parent / f"_{nombre}.scr"
     scr.write_text("\n".join(["FILEDIA", "0", "CMDDIA", "0", *lineas, "FILEDIA", "1", "CMDDIA", "1", "_.QUIT", "_Y", ""]) + "\n",
-                   encoding="utf-8")
+                   encoding="cp1252", errors="replace")
     m0 = salida.stat().st_mtime if salida.exists() else 0
     t0 = time.time()
     p = subprocess.Popen([str(EXE), "/nologo", str(archivo), "/b", str(scr)])
@@ -66,7 +70,15 @@ if ok:
         COPIA.rename(COPIA.with_name(COPIA.stem + time.strftime("_anterior_%Y%m%d_%H%M") + COPIA.suffix))
     shutil.copy2(ORIG, COPIA)
     time.sleep(1)
-    correr(COPIA, ["_.-INSERT", f'"*{capas_dwg}"', "0,0", "1", "0", "_.ZOOM", "_E", "_.QSAVE"], COPIA, "insertar")
+    pasos = []
+    if BORRAR:
+        xs, ys = [p[0] for p in BORRAR], [p[1] for p in BORRAR]
+        pasos += ["_.-LAYER", "_LO", "*", "_U", ",".join(CAPAS_B), "",
+                  "_.ZOOM", "_W", f"{min(xs) - 1},{min(ys) - 1}", f"{max(xs) + 1},{max(ys) + 1}",
+                  "_.ERASE", "_WP", *[f"{x},{y}" for x, y in BORRAR], "", "",
+                  "_.-LAYER", "_U", "*", ""]
+    pasos += ["_.-INSERT", f'"*{capas_dwg}"', "0,0", "1", "0", "_.ZOOM", "_E", "_.QSAVE"]
+    correr(COPIA, pasos, COPIA, "insertar")
 res["copia"] = str(COPIA)
 (COPIA.parent / "acad_insertar_capas_resultado.json").write_text(json.dumps(res, ensure_ascii=False, indent=1), encoding="utf-8")
 print(json.dumps(res, ensure_ascii=False, indent=1))
