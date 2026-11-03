@@ -1383,3 +1383,5 @@ Inventario de sólo lectura con `info_instalacion.py` (deja `Generados\_info\inf
 - Anchos v8: pasillo este (insumos de cartones) 1,53 m entre la envolvedora (X 14503) y la pared (16036); al oeste de la
   bajada 5,8 m para la reposición de pallets; pasillo norte 2,2 m. Choques: sólo uniones entre módulos.
   Imagen `viabilidad\v8_rutas.png`. Último pedido: p449.
+- 03/11: el usuario descarta la v8 (por fuera de la envolvedora van rejas de protección): se sigue con la **v7**
+  (`LayoutL3N_liviano_v7.iam`). La cruz S-11217 vuelve a quedar sin usar.
