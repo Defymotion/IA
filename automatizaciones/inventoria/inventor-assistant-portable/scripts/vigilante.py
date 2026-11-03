@@ -132,20 +132,45 @@ def abrir_privado() -> bool:
             estado("Obtuve el Inventor del usuario en lugar de uno nuevo: sigo en modo compartido")
             priv["fallo"] = True
             return False
-        app.Visible = VISIBLE
-        app.SilentOperation = True
+        paso_ = "Visible"
+        try:
+            app.Visible = VISIBLE
+        except pythoncom.com_error as e:
+            print(f"    aviso: Visible -> {e}", flush=True)
+        paso_ = "SilentOperation"
+        try:
+            app.SilentOperation = True
+        except pythoncom.com_error as e:
+            print(f"    aviso: SilentOperation -> {e}", flush=True)
+        paso_ = "pid"
         pid = _pid_de(app)
-        h = win32api.OpenProcess(win32con.PROCESS_SET_INFORMATION | win32con.PROCESS_QUERY_INFORMATION, False, pid)
-        win32process.SetPriorityClass(h, BELOW_NORMAL)
+        priv["pid"] = pid
+        paso_ = "prioridad"
+        try:
+            h = win32api.OpenProcess(win32con.PROCESS_SET_INFORMATION | win32con.PROCESS_QUERY_INFORMATION, False, pid)
+            win32process.SetPriorityClass(h, BELOW_NORMAL)
+        except Exception as e:  # noqa: BLE001
+            print(f"    aviso: prioridad -> {e}", flush=True)
+        paso_ = "ROT"
         rot = pythoncom.GetRunningObjectTable()
         mk = pythoncom.CreateItemMoniker("!", PRIVADO)
-        cookie = rot.Register(1, app._oleobj_, mk)       # 1 = ROTFLAGS_REGISTRATIONKEEPSALIVE
+        cookie = None
+        for flags, obj in ((1, app._oleobj_), (0, app._oleobj_), (1, app._oleobj_.QueryInterface(pythoncom.IID_IUnknown)),
+                           (0, app._oleobj_.QueryInterface(pythoncom.IID_IUnknown))):
+            try:
+                cookie = rot.Register(flags, obj, mk)       # 1 = ROTFLAGS_REGISTRATIONKEEPSALIVE
+                break
+            except pythoncom.com_error as e:
+                print(f"    aviso: ROT.Register({flags}) -> {e}", flush=True)
+        if cookie is None:
+            raise RuntimeError("no pude registrar el Inventor en la ROT")
         priv.update(app=app, pid=pid, cookie=cookie, rot=rot)
         PIDF.write_text(str(pid), encoding="utf-8")
         estado(f"Inventor privado listo (pid {pid}, oculto, prioridad baja). Tu Inventor queda libre.")
         return True
     except Exception as exc:  # noqa: BLE001
-        estado(f"No pude abrir el Inventor privado ({exc!r}): sigo en modo compartido")
+        import traceback
+        estado(f"No pude abrir el Inventor privado ({exc!r}): sigo en modo compartido\n{traceback.format_exc()[-1500:]}")
         cerrar_privado(forzar=True)
         priv["fallo"] = True
         return False
