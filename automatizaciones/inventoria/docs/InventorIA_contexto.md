@@ -1418,3 +1418,21 @@ Inventario de sólo lectura con `info_instalacion.py` (deja `Generados\_info\inf
   (3:06, 136 MB) y `_1280.mp4` (16 MB). El cuadro 1374 salió truncado (se repite el anterior).
 - Vigilantes paralelos (`vigilante_2.bat`, `vigilante_3.bat`, `--carpeta --nombre --visible`): NO andan. El segundo
   Inventor abre, pero `ROT.Register` da E_INVALIDARG. Se volvió a un solo vigilante. Último pedido: p463.
+
+### L3N — DWG de planta con la etapa 1 (03/11/2026, p465-p470)
+
+- Copia del plano de planta `C:\DEFYMOTION\L3N\Revamping E2 - Defymotion - Integracion V1.dwg` (el original no se toca):
+  `C:\DEFYMOTION\L3N\Planos_IA\Revamping E2 - Defymotion - Integracion V1 - ETAPA 1 DEFYMOTION.dwg`.
+- Cadena de trabajo:
+  1. `l3n_planta_dxf.py <carpeta>` (Inventor): ensambles temporales por grupo, una hoja por grupo con la vista
+     superior HLR a 1:100 y exportación DXF (1 u = 1 mm). La plantilla de dibujo es .dwg: se guarda como .dwg.
+  2. En la nube, `scripts/l3n_plano_e1/armar_overlay.py` + `anot.py`:
+     - transforma la geometría a coordenadas de la planta (m; x = -Z, y = -X, ancla de la giratoria A);
+     - dibuja los pasillos, los recorridos, las cotas, la puerta a reubicar y la leyenda;
+     - sale `L3N_E1_capas_nuevas.dxf` con INSUNITS 4, como la planta.
+  3. `acad_insertar_capas.py` (AutoCAD LT por guion): pasa el DXF a DWG, copia la planta e inserta explotado en 0,0.
+     `abrir_en_acad.py` lo abre.
+- Capas `DEFY_E1_*`: transportes, MP402, celda A nueva, extensión del riel y buffer de cartones, reserva de la etapa 2,
+  pasillos de transpaleta, zona del autoelevador, recorridos (reposición de pallets, insumos de cartones), cotas,
+  textos y puerta. El tramo final del recorrido de cartones hacia el buffer es una propuesta a confirmar.
+  La cota grande "19,23" sobre la T3 viene del plano original. Último pedido: p470.
