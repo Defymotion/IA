@@ -1346,3 +1346,18 @@ Inventario de sólo lectura con `info_instalacion.py` (deja `Generados\_info\inf
 - Espacios v5: pasillo norte 2,21 m; este >= 3,2 m; zona autoelevador 4,1 m x >4,5 m; carril 3,7 m. Choques: sólo
   uniones entre módulos y el buffer de cartones sobre la chapa de piso. Imagen `viabilidad\v5_pasillos.png`.
   Mientras envuelve, el T2 S-11261 (entrada) tiene que estar vacío (barrido del brazo). Último pedido: p437.
+
+### L3N — v6: salida de la envolvedora y rutas de insumos (03/11/2026, p438-p441)
+
+- La franja rayada (Linea_Pallets/Pasarela:1) era sólo un indicador del recorrido del robot aéreo: se oculta en el v6.
+- Puerta del DWG junto al buffer de cartones (pared norte del cuarto, cerca de la esquina con la pared este): se anula
+  y se pasa a la pared contigua (ubicación exacta a definir con el usuario). En `Paredes.ipt` no está modelada.
+- Rutas del usuario: reposición de los buffers de pallets (exportación y normal) por el carril sur del T3 (3,7 m) y bajando
+  hacia +Z al oeste de la envolvedora (4,1 m libres); insumos del buffer de cartones por el pasillo norte (2,2 m) y el
+  pasillo este (3,2 m).
+- v6 (`plan_liviano_v6.json` -> `LayoutL3N_liviano_v6.iam`): salida de la envolvedora con los dos L1705 de T1 en la bajada
+  (S-11219 cadena Z -32025..-30466, S-11226 -30451..-28512, origen Y +25 -> cadena 589, como los T2). OJO: son AT_1000
+  (±500): con los pallets de B y C (1000 de costado en la bajada) la cadena externa queda en el borde -> pasarlos a ±450
+  (reforma) o usar rodillos. Mientras envuelve, la salida 1 tiene que estar vacía (barrido del brazo). Retiro con
+  autoelevador desde la salida 2. Etapa 2: pallet cautivo en la reserva verde. Choques v6: sólo uniones entre módulos.
+  Imagen `viabilidad\v6_rutas.png`. Último pedido: p441.
