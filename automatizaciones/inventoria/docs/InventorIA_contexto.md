@@ -1374,3 +1374,12 @@ Inventario de sólo lectura con `info_instalacion.py` (deja `Generados\_info\inf
   con rodillos en X -7141..-5941, cama B/C X -7220..-5847), celda A reemplazada por la copia v6 (`reemplazos` en el plan).
   Choques v7: sólo uniones entre módulos. El robot de la celda A tiene que reprogramar la estación de paletizado (300 mm).
   Último pedido: p446.
+
+### L3N — v8: esquina más cerca de la pared este (03/11/2026, p447-p449)
+
+- Pedido: aprovechar el espacio entre la bajada y la pared este. Única pieza libre: la cruz S-11217 -> se usa como tramo
+  recto de T3 (cadenas a ±502, misma altura 564) entre T3_6 (S-11250) y la cruz S-11256: la esquina, la bajada, la
+  envolvedora, la salida y la reserva se corren +1963 mm en X (`plan_liviano_v8.json` -> `LayoutL3N_liviano_v8.iam`).
+- Anchos v8: pasillo este (insumos de cartones) 1,53 m entre la envolvedora (X 14503) y la pared (16036); al oeste de la
+  bajada 5,8 m para la reposición de pallets; pasillo norte 2,2 m. Choques: sólo uniones entre módulos.
+  Imagen `viabilidad\v8_rutas.png`. Último pedido: p449.
