@@ -1412,3 +1412,9 @@ Inventario de sólo lectura con `info_instalacion.py` (deja `Generados\_info\inf
   (X -7738). Hay que revisarlo en la celda real.
 - Escena: `armar_l3n_sim6.py <plan6.json>` arma la copia `Generados\L3N_SIM6\L3N_SIM6_Planta.iam` del liviano v7. Reusa el
   gripper y los films de L3N_SIM5 y pallets llenos simplificados. Render: `simular_l3n_v6.py`.
+- Render (p458-p463, 1 vigilante, ~1,3 s por cuadro, 5577 cuadros): cuadros en `Generados\L3N_SIM6\Cuadros`. Video
+  armado en la VM del puente (device_bash, por partes de 1400 cuadros: cada llamada corta a los 180 s y lo que queda en
+  segundo plano muere) con rótulos DejaVu: `Generados\L3N_SIM6\Animacion\L3N_simulacion_etapa1_Inventor_30fps.mp4`
+  (3:06, 136 MB) y `_1280.mp4` (16 MB). El cuadro 1374 salió truncado (se repite el anterior).
+- Vigilantes paralelos (`vigilante_2.bat`, `vigilante_3.bat`, `--carpeta --nombre --visible`): NO andan. El segundo
+  Inventor abre, pero `ROT.Register` da E_INVALIDARG. Se volvió a un solo vigilante. Último pedido: p463.
