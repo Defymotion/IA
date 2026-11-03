@@ -1385,3 +1385,30 @@ Inventario de sólo lectura con `info_instalacion.py` (deja `Generados\_info\inf
   Imagen `viabilidad\v8_rutas.png`. Último pedido: p449.
 - 03/11: el usuario descarta la v8 (por fuera de la envolvedora van rejas de protección): se sigue con la **v7**
   (`LayoutL3N_liviano_v7.iam`). La cruz S-11217 vuelve a quedar sin usar.
+
+### L3N — simulación v6 de la etapa 1 (03/11/2026, desde p450)
+
+- Pedido: simular la línea completa con la celda A paletizando de verdad. B y C sólo aportan sus pallets llenos: B cada
+  ~9 min y C cada ~5 min. El robot arranca en régimen, sin la puesta en marcha. El robot aéreo trae los pallets vacíos y,
+  cuando queda libre, busca un cartón y lo deja sobre el pallet de arriba del buffer.
+- Lógica en `scripts/l3n_sim6/`:
+  - `linea6.py`: planta por pasos de tiempo. Tiene zonas de acumulación, giratorias B/C, cruz A / cruz S-11256 (cadenas
+    o rodillos), la MP402 (envuelve con T2 S-11261 y salida 1 vacías), la salida al autoelevador, el robot aéreo con
+    cartones y la reposición de buffers.
+  - `flujo6.py`: video 2D en planta para validar.
+  - `plan6.py`: celda A real (celda5 de l3n_sim5) + linea6 -> plan de cuadros para Inventor. Guion de ~186 s, 5576 cuadros.
+- Supuestos:
+  - buffer 1 (normal) alimenta A y B; buffer 2 (export.) alimenta C;
+  - cadenas y rodillos a 0,3 m/s, envuelto de 60 s;
+  - autoelevador: retira 30 s después y vuelve cada 90 s;
+  - C usa el pallet lleno de B.
+- Resultado en 1 h:
+  - 30 pallets (A 10, B 7, C 13), sin esperas de las celdas;
+  - robot aéreo ~55 %, MP402 ~47 %;
+  - de pallet completo a retiro ~4,5 min.
+- **Hallazgo:** con la reja este y la barrera IFM a -300 (celda A v6), la columna `Reja_Este_col_4` y el emisor IFM
+  quedan en el camino de la caja entre la cinta interna y el pallet. En la simulación el robot pasa por arriba
+  (traslado a Y 1600-2350). Además, la `Cinta_Interna_CeldaA` (termina en X -7451) sobresale ~290 mm de la reja movida
+  (X -7738). Hay que revisarlo en la celda real.
+- Escena: `armar_l3n_sim6.py <plan6.json>` arma la copia `Generados\L3N_SIM6\L3N_SIM6_Planta.iam` del liviano v7. Reusa el
+  gripper y los films de L3N_SIM5 y pallets llenos simplificados. Render: `simular_l3n_v6.py`.
