@@ -428,6 +428,7 @@ OCULTAR += [CELDA_P + n_ for n_ in ("IA_Robot_V02", "IA_Robot_V03", "IA_Robot_V0
                                     "chapa tope derecha:1", "soporte bandejas:14", "soporte bandejas:15", "Empujador 01:1",
                                     "roller conveyor - rotating:1", "Ensamble pateador adeco:1/chapa nueva 2:2")]
 OCULTAR += ["Celda_B_existente:1/Pallet_Completo:2", "Celda_C_existente:1/Pallet_Completo:2"]
+OCULTAR += ["Linea_Pallets:1/MP402:1", "Linea_Pallets:1/roller conveyor - rotating:2", "Linea_Pallets:1/Pasarela:1"]
 OCULTAR += [AEREO_P + n_ for n_ in ("Carro", "Torre_elevacion", "Barra_elevacion", "Sujecion_pallet", "Pallet_en_sujecion")]
 OCULTAR += [AEREO_P + f"Pila{k}_pallet_{j}" for k in (1, 2) for j in range(1, 11)]
 _oc = AQUI.parent / "l3n_sim5" / "ocultos_celdas.json"
