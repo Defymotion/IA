@@ -56,7 +56,8 @@ def _result(**values: Any) -> str:
 
 
 # --- Conexión ----------------------------------------------------------------
-PRIVADO = "InventorIA.Privado"     # nombre con que el vigilante registra SU Inventor oculto en la ROT
+PRIVADO = __import__("os").environ.get("INVENTORIA_ROT", "InventorIA.Privado")   # nombre del Inventor del vigilante en la ROT
+# (los vigilantes paralelos usan otro nombre: vigilante.py --nombre InventorIA.Paralelo2)
 
 
 def _get_private() -> Any | None:
@@ -68,7 +69,7 @@ def _get_private() -> Any | None:
         ctx = pythoncom.CreateBindCtx(0)
         for mk in rot.EnumRunning():
             try:
-                if PRIVADO in mk.GetDisplayName(ctx, None):
+                if mk.GetDisplayName(ctx, None).strip("!") == PRIVADO:
                     unk = rot.GetObject(mk)
                     app = Dispatch(unk.QueryInterface(pythoncom.IID_IDispatch))
                     app.Ready                                  # que esté vivo

@@ -27,13 +27,21 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = ROOT / "scripts"
-JOBS = Path.home() / "Documents" / "InventorIA" / "_pedidos"
+def _arg(nombre, defecto=None):
+    return sys.argv[sys.argv.index(nombre) + 1] if nombre in sys.argv else defecto
+
+
+# vigilantes paralelos (p. ej. para repartir un render): vigilante.py --privado --carpeta _pedidos_2
+#   --nombre InventorIA.Paralelo2 --visible  -> su propia carpeta de pedidos y su propio Inventor (otro proceso)
+PARALELO = "--carpeta" in sys.argv
+JOBS = Path.home() / "Documents" / "InventorIA" / _arg("--carpeta", "_pedidos")
 PY = ROOT / ".venv" / "Scripts" / "python.exe"
 JOBS.mkdir(parents=True, exist_ok=True)
 ESTADO = JOBS / "instancia.txt"            # .txt: los .json de esta carpeta se toman como pedidos
 PIDF = JOBS / "inventor_privado.pid"
 BELOW_NORMAL = 0x00004000
-PRIVADO = "InventorIA.Privado"
+PRIVADO = _arg("--nombre", "InventorIA.Privado")
+VISIBLE = "--visible" in sys.argv          # el Inventor del vigilante con ventana (para renders)
 COMPARTIDO = "--privado" not in sys.argv     # por ahora el Inventor privado es opcional (en prueba)
 
 priv = {"app": None, "pid": None, "cookie": None, "rot": None, "fallo": False}
@@ -124,7 +132,7 @@ def abrir_privado() -> bool:
             estado("Obtuve el Inventor del usuario en lugar de uno nuevo: sigo en modo compartido")
             priv["fallo"] = True
             return False
-        app.Visible = False
+        app.Visible = VISIBLE
         app.SilentOperation = True
         pid = _pid_de(app)
         h = win32api.OpenProcess(win32con.PROCESS_SET_INFORMATION | win32con.PROCESS_QUERY_INFORMATION, False, pid)
@@ -238,6 +246,9 @@ def run(job_file: Path) -> None:
             cerrar_privado(forzar=True)
             abrir_privado()
         env["INVENTORIA_INSTANCIA"] = "usuario" if (usuario or not privado_vivo()) else "privado"
+        env["INVENTORIA_ROT"] = PRIVADO
+        if PARALELO and not privado_vivo():
+            raise RuntimeError("vigilante paralelo sin su Inventor propio: no uso el del usuario")
         print(f"[{datetime.now():%H:%M:%S}] {rid}: {target.name} {' '.join(args)}  "
               f"(Inventor {env['INVENTORIA_INSTANCIA']})", flush=True)
         t0 = time.time()
@@ -285,7 +296,7 @@ try:                                   # cerrar la ventana del vigilante tambié
 except Exception:  # noqa: BLE001
     pass
 print(f"Vigilante activo. Carpeta de pedidos: {JOBS}", flush=True)
-_h = limpiar_huerfanos()
+_h = [] if PARALELO else limpiar_huerfanos()        # un paralelo no cierra los Inventor de los otros
 if _h:
     print(f"Cerré {len(_h)} Inventor oculto(s) huérfano(s): {_h}", flush=True)
 if COMPARTIDO:
