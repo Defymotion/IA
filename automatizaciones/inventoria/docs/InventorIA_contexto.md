@@ -1587,3 +1587,24 @@ Inventario de sólo lectura con `info_instalacion.py` (deja `Generados\_info\inf
 - En `Planos_IA` quedan sólo el DWG v2 y el PDF A3.
 - `armar_l3n_sim6.py` apunta al v7, que ahora está en la carpeta para borrar: la próxima simulación se arma desde el v9.
 - `cerrar_acad_de_archivo.py` cierra sólo el AutoCAD que abrió un archivo dado.
+
+### L3N v9 — cama de la celda A con rolos MDC (04/11/2026, p521-p524)
+
+- p521: se abrió el v9 en el Inventor del usuario. Inventor pidió "Resolver vínculo" porque la cama estaba en
+  `Documents\InventorIA\Generados`, fuera del proyecto. Por eso las camas nuevas van a `C:\DEFYMOTION\L3N\Celdas_IA\Camas_rolos\`.
+- `cama_rolos_param.py --rolo mdc [--paso]` arma la cama con rolos del catálogo "Rodillos -MDC-":
+  - **Rolo:**
+    - caño galvanizado pesado Ø63,5x2;
+    - eje Ø20 fresado;
+    - alojamientos con 6004;
+    - piñón doble Z14 1/2" ASA 40 en las hileras Z 1879 y 1893,4.
+  - **Transmisión:** cadenas cortas rolo a rolo, alternadas. Con paso 101,6 cada una tiene 30 eslabones.
+  - **Rolo motriz:** el más cercano al motor lleva una tercera hilera (Z 1907,8) y el 18Z del motor se corre sobre su eje
+    hasta esa hilera. Ese piñón triple está **a confirmar con MDC**.
+  - **Lo que sale:** guía plástica, tensores (17Z tensor, Eje 03/04, Chapa 11/12) y separadores.
+  - Fotos: `foto_iso.png`, `frente_transmision.png` e `iso_transmision.png` (con `foto_cama_transmision.py`).
+- p522: `Cama_rolos_1933x1699_celdaA_MDC`, con 18 rolos a 101,6 mm. El rolo motriz es el 9 y la distancia entre ejes
+  motor-rolo es de 160 mm.
+- p524: reemplazó en el v9 la cama anterior (`Cama_rolos_A_1933x1699_MDC`, tx -8831,916). La envolvente quedó igual que
+  la de la cama Fademaq, así que el alcance y la altura no cambian.
+- Último pedido: p524.

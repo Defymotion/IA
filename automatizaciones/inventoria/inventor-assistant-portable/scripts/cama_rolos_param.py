@@ -14,6 +14,12 @@ mesa como los de la CdR1512 (1565 x 1499).
 Uso: python cama_rolos_param.py --largo <mm> --ancho <mm> --nombre <N> [--destino <carpeta>] [--rel relevamiento.json]
      [--sin-foto] [--x-patas <x local del par de patas, sólo con largo < 600>]
      [--dx-patas-fin <mm: corre el par de patas del extremo +X (p. ej. para esquivar algo del layout)>]
+     [--rolo mdc] [--paso <mm, paso entre rolos; con mdc 101,6 = 8 pasos de cadena 1/2">]
+- --rolo mdc: rolo del proveedor MDC (catálogo "Rodillos -MDC-") en vez del Fademaq: caño galvanizado pesado Ø63,5 x 2,
+  eje Ø20 fresado, alojamientos con rodamiento 6004 y piñón DOBLE Z14 1/2" (ASA 40) en el lado de la transmisión;
+  transmisión rolo a rolo con cadenas cortas alternadas en las dos hileras (sin cadena corrida, sin guía plástica ni
+  tensores). El rolo motriz (el más cercano al motorreductor) lleva una tercera hilera para la cadena del motor (18Z,
+  que se corre sobre su eje hasta esa hilera): piñón TRIPLE, a confirmar con MDC.
 Salida: <destino>\\<N>\\<N>.iam + piezas + resumen.json (+ foto_iso.png).
 """
 import json
@@ -54,6 +60,16 @@ log = {"largo": LARGO, "ancho": ANCHO, "dL": DL, "dW": DW, "avisos": [], "piezas
 AP_CHAPA = ["pintura epoxi azul", "azul", "blue", "acero galvanizado", "acero"]
 AP_ROLO = ["acero galvanizado", "galvanized", "cromo", "acero"]
 AP_PLAST = ["plástico blanco", "blanco", "white", "plástico"]
+AP_CADENA = ["gris oscuro", "negro", "dark", "gris"]
+MDC = arg("--rolo", "fademaq").lower() == "mdc"
+PASO = float(arg("--paso", 101.6 if MDC else 0)) or None      # None: el de la CdR1512
+Y_ROLO = 105.817                     # eje de los rolos (Y) en la CdR1512
+ZF = [1879.0, 1893.4, 1907.8]        # hileras del piñón (Z): doble = las dos primeras; motriz = las tres (web del lateral a 1912)
+RP14 = 12.7 / (2 * math.sin(math.pi / 14))     # radio primitivo Z14 1/2" (28,53)
+RP18 = 12.7 / (2 * math.sin(math.pi / 18))     # radio primitivo Z18 1/2" (36,57)
+X_MOTOR, Y_MOTOR, Z_18Z = -268.681, -46.183, 1896.1
+MDC_QUITAR = ("Piñon ASA 40-17Z Tensor", "Eje 03", "Eje 04", "Chapa 11", "Chapa 12", "Separador 01")
+log["rolo"] = "MDC" if MDC else "Fademaq CdR1512"
 
 
 def mmul(a, b):
@@ -142,7 +158,7 @@ try:
                       "Lateral C de cama de rolos (lado libre)", AP_CHAPA)
     tapa = g.perfil_x(f"{NOMBRE}_Tapa_cadena_L{LL(1553):.0f}", [(0, -8.5), (0, -56.5), (-40, -56.5), (-40, -54), (-2.5, -54), (-2.5, -11),
                                                        (-60, -11), (-60, -8.5)], LL(1553), "Tapa de cadena", AP_CHAPA)
-    guia = g.perfil_x(f"{NOMBRE}_Guia_plastica_L{LL(1500):.0f}", [(-75.671, 0), (-55.671, 0), (-55.671, 20), (-75.671, 20)], LL(1500),
+    guia = None if MDC else g.perfil_x(f"{NOMBRE}_Guia_plastica_L{LL(1500):.0f}", [(-75.671, 0), (-55.671, 0), (-55.671, 20), (-75.671, 20)], LL(1500),
                       "Guía plástica de cadena", AP_PLAST)
     cubre = g.perfil_x(f"{NOMBRE}_Cubrecadena_L{LL(1558):.0f}", [(-45, 0), (-45, 151), (-3.2, 151), (-3.2, 147), (-41, 147), (-41, 0)],
                        LL(1558), "Cubrecadena", AP_CHAPA)
@@ -155,14 +171,49 @@ try:
     # ---------------------------------------------------------------- rolo (subensamble nuevo)
     rolos = sorted([e for e in occ if e["nivel"] == 2 and "02.Ensamblaje Rolo" in e["n"]], key=lambda e: centro(e["c"])[0])
     xs = [centro(e["c"])[0] for e in rolos]
-    paso = (xs[-1] - xs[0]) / (len(xs) - 1)
+    paso = PASO or (xs[-1] - xs[0]) / (len(xs) - 1)
     r0 = rolos[0]
     hijos = [e for e in occ if e["n"].startswith(r0["n"] + "/")]
     XC0 = next(h for h in hijos if h["n"].split("/")[-1].startswith("Eje 01"))["M"][0][3]
     ruta_rolo = DEST / f"{NOMBRE}_Rolo.iam"      # nombres únicos: Inventor no abre dos archivos con el mismo nombre
-    if ruta_rolo.exists():
-        ruta_rolo.unlink()
+    ruta_motriz = DEST / f"{NOMBRE}_Rolo_motriz.iam"
+    for r_ in (ruta_rolo, ruta_motriz):
+        if r_.exists():
+            r_.unlink()
     er = app.Documents.Add(inv.K_ASSEMBLY_DOCUMENT, app.FileManager.GetTemplateFile(inv.K_ASSEMBLY_DOCUMENT), False)
+    if MDC:
+        z_ini = 722.04 - DW
+        p_cano = g.cilindro(f"{NOMBRE}_MDC_Cano_D63.5x2_L{WW(1152):.0f}", 63.5, WW(1152), "z",
+                            "Caño galvanizado pesado Ø63,5 x 2 (MDC)", AP_ROLO, d_int=59.5, centrado=False)
+        p_eje = g.cilindro(f"{NOMBRE}_MDC_Eje_D20_L{WW(1197):.0f}", 20.0, WW(1197), "z", "Eje Ø20 fresado (MDC)", AP_ROLO,
+                           centrado=False)
+        p_aloj = g.cilindro(f"{NOMBRE}_MDC_Alojamiento_6004", 59.0, 16.0, "z", "Alojamiento con rodamiento 6004 (MDC)",
+                            ["gris", "acero"], d_int=20.0, centrado=False)
+        dientes = []
+        for i in range(14):
+            t = 2 * math.pi * i / 14
+            for da, rr in ((-0.4, RP14 - 3.97), (-0.14, RP14 + 3.1), (0.14, RP14 + 3.1), (0.4, RP14 - 3.97)):
+                a = t + da * 2 * math.pi / 14
+                dientes.append((round(rr * math.cos(a), 3), round(rr * math.sin(a), 3)))
+        p_pin = g.perfil_z(f"{NOMBRE}_MDC_Pinon_Z14_ASA40", dientes, 7.2, 'Piñón Z14 paso 1/2" ASA 40 (hilera)',
+                           ["gris", "acero"], simetrico=True)
+        bujes = {}
+        for nf in (2, 3):
+            lb = ZF[nf - 1] + 3.6 - 1874.04
+            bujes[nf] = g.cilindro(f"{NOMBRE}_MDC_Buje_pinon_{nf}h", 38.0, lb, "z", f"Buje del piñón de {nf} hileras",
+                                   ["gris", "acero"], d_int=20.0, centrado=False)
+        for nf, ruta_r in ((2, ruta_rolo), (3, ruta_motriz)):
+            er_ = er if nf == 2 else app.Documents.Add(inv.K_ASSEMBLY_DOCUMENT,
+                                                       app.FileManager.GetTemplateFile(inv.K_ASSEMBLY_DOCUMENT), False)
+            for f_, z_ in [(p_cano, z_ini), (p_eje, 715.04 - DW), (p_aloj, z_ini), (p_aloj, 1874.04 - 16.0),
+                           (bujes[nf], 1874.04)] + [(p_pin, z) for z in ZF[:nf]]:
+                o = er_.ComponentDefinition.Occurrences.Add(str(f_), mx([[1, 0, 0, 0], [0, 1, 0, Y_ROLO], [0, 0, 1, z_]]))
+                S(lambda: setattr(o, "Grounded", True))
+            inv._iprop(er_, "Design Tracking Properties", "Description",
+                       f"ROLO MDC Ø63,5 x {WW(1152):.0f} PIÑÓN {'TRIPLE' if nf == 3 else 'DOBLE'} Z14 1/2\"")
+            er_.SaveAs(str(ruta_r), False)
+            docs_cerrar.append(er_)
+        hijos = []
     for h in hijos:
         n = h["n"].split("/")[-1]
         M = tras(h["M"], -XC0, 0, 0)
@@ -176,8 +227,9 @@ try:
                 M = tras(M, 0, 0, -DW)
         o = er.ComponentDefinition.Occurrences.Add(f, mx(M))
         S(lambda: setattr(o, "Grounded", True))
-    er.SaveAs(str(ruta_rolo), False)
-    docs_cerrar.append(er)
+    if not MDC:
+        er.SaveAs(str(ruta_rolo), False)
+        docs_cerrar.append(er)
     # ---------------------------------------------------------------- cama
     ruta = DEST / f"{NOMBRE}.iam"
     if ruta.exists():
@@ -198,6 +250,8 @@ try:
     # largo
     for pref, f, x0, fijo in (("Chapa 01", lat1, 0.0, "x"), ("Chapa 02", lat2, 0.0, "x"), ("Chapa 03", tapa, -396.719, "x"),
                               ("Guia Plástica 01", guia, 6.458, "x"), ("Chapa 10", cubre, -2.5, "x")):
+        if f is None:
+            continue
         e = una(pref)
         M = estirada(e["M"], 0, x0, DL, 0, False)
         if centro(e["c"])[2] < Z_MID:
@@ -211,9 +265,34 @@ try:
     L_rolos = (xs[-1] - xs[0]) + DL
     n_rolos = max(2, int(math.floor(L_rolos / paso + 1e-6)) + 1)
     sobra = L_rolos - (n_rolos - 1) * paso
+    xr = [XC0 + sobra / 2 + i * paso for i in range(n_rolos)]
+    x_m = X_MOTOR + dx_de(X_MOTOR)
+    k_mot = min(range(n_rolos), key=lambda i: abs(xr[i] - x_m)) if (MDC and LARGO >= 900) else None
     for i in range(n_rolos):
-        poner(ruta_rolo, [[1, 0, 0, XC0 + sobra / 2 + i * paso], [0, 1, 0, 0], [0, 0, 1, 0]], f"Rolo_{i + 1}")
+        poner(ruta_motriz if i == k_mot else ruta_rolo, [[1, 0, 0, xr[i]], [0, 1, 0, 0], [0, 0, 1, 0]],
+              f"Rolo_motriz_{i + 1}" if i == k_mot else f"Rolo_{i + 1}")
     log["rolos"] = {"n": n_rolos, "paso": round(paso, 3)}
+    if MDC:
+        # cadenas rolo a rolo (ASA 40, 30 eslabones con paso 101,6): tramos de arriba y de abajo, hileras alternadas
+        tramo = g.perfil_z(f"{NOMBRE}_MDC_Cadena_ASA40_tramo_L{paso:.1f}", [(0, -3.95), (paso, -3.95), (paso, 3.95), (0, 3.95)],
+                           7.5, 'Tramo de cadena ASA 40 1/2" rolo a rolo', AP_CADENA, simetrico=True)
+        for i in range(n_rolos - 1):
+            for sg in (1, -1):
+                poner(tramo, [[1, 0, 0, xr[i]], [0, 1, 0, Y_ROLO + sg * RP14], [0, 0, 1, ZF[i % 2]]], f"Cadena_{i + 1}_{i + 2}_{'sup' if sg > 0 else 'inf'}")
+        log["cadenas_rolo_a_rolo"] = n_rolos - 1
+        log["eslabones_por_cadena"] = round(2 * paso / 12.7 + 14, 2)
+        if k_mot is not None:
+            dx_, dy_ = xr[k_mot] - x_m, Y_ROLO - Y_MOTOR
+            lc = math.hypot(dx_, dy_)
+            ux, uy = dx_ / lc, dy_ / lc
+            off = (RP18 + RP14) / 2
+            tm = g.perfil_z(f"{NOMBRE}_MDC_Cadena_motor_tramo_L{lc:.0f}", [(0, -3.95), (lc, -3.95), (lc, 3.95), (0, 3.95)], 7.5,
+                            'Tramo de cadena ASA 40 1/2" motor - rolo motriz', AP_CADENA, simetrico=True)
+            for sg in (1, -1):
+                poner(tm, [[ux, -uy, 0, x_m - uy * sg * off], [uy, ux, 0, Y_MOTOR + ux * sg * off], [0, 0, 1, ZF[2]]],
+                      f"Cadena_motor_{'a' if sg > 0 else 'b'}")
+            log["rolo_motriz"] = {"i": k_mot + 1, "x": round(xr[k_mot], 1), "x_motor": round(x_m, 1),
+                                  "distancia_ejes": round(lc, 1), "eslabones_aprox": round(2 * lc / 12.7 + 16 + 1.5, 1)}
     # el resto (sin cambios de forma): se corre con su extremo / al medio / del lado libre
     hechos = ("Chapa 01", "Chapa 02", "Chapa 03", "Guia Plástica 01", "Chapa 10", "Caño 03", "02.Ensamblaje Rolo")
     descartados = []
@@ -222,6 +301,9 @@ try:
         if e["nivel"] == 1 and n.startswith("01.Ensamblaje"):
             continue
         if e["nivel"] == 2 and n.startswith(hechos):
+            continue
+        if MDC and n.startswith(MDC_QUITAR):
+            descartados.append(n)
             continue
         if e["nivel"] == 2 and e["n"].startswith("01.Ensamblaje") or (e["nivel"] == 1 and n.startswith("06.Ensamblaje Pata")):
             c = centro(e["c"])
@@ -242,9 +324,11 @@ try:
                 descartados.append(n)
                 continue
             M = tras(e["M"], ddx, 0, -DW if c[2] < Z_MID else 0.0)
+            if MDC and n.startswith(("Piñon ASA 40-18Z", "Chaveta 02")):
+                M = tras(M, 0, 0, ZF[2] - Z_18Z)        # el piñón del motor se corre sobre su eje hasta la 3.ª hilera
             poner(e["f"], M)
     log["descartados_por_largo"] = descartados
-    inv._iprop(ed, "Design Tracking Properties", "Description", f"CAMA DE ROLOS {LARGO:.0f} X {ANCHO:.0f} (PARAMÉTRICA DE CDR1512)")
+    inv._iprop(ed, "Design Tracking Properties", "Description", f"CAMA DE ROLOS {LARGO:.0f} X {ANCHO:.0f} (PARAMÉTRICA DE CDR1512{', ROLOS MDC' if MDC else ''})")
     for k, v in (("Largo", LARGO), ("Ancho", ANCHO)):
         S(lambda k=k, v=v: ed.ComponentDefinition.Parameters.UserParameters.AddByExpression(k, f"{v} mm", "mm"))
     ed.Update()
