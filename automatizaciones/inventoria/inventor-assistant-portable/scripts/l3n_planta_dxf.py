@@ -2,7 +2,7 @@
 al DWG de planta. Arma ensambles temporales por grupo (no toca el layout), un dibujo con una hoja por grupo (vista
 superior 1:ESC, sin borde ni cajetín) y lo exporta a DXF (una hoja = un archivo). Guarda la transformación
 modelo -> hoja de cada vista para llevar la geometría a coordenadas de planta en la nube.
-Uso: python l3n_planta_dxf.py <carpeta_salida> [--escala 100]
+Uso: python l3n_planta_dxf.py <carpeta_salida> [--escala 100] [--grupos G1,G2] [--prefijo P] [--layout <iam>]
 """
 import json
 import sys
@@ -20,7 +20,7 @@ SAL = Path(sys.argv[1])
 TMP = SAL / "_ensambles_temporales"
 TMP.mkdir(parents=True, exist_ok=True)
 ESC = float(sys.argv[sys.argv.index("--escala") + 1]) if "--escala" in sys.argv else 100.0
-LAY = Path(r"C:\DEFYMOTION\L3N\Celdas_IA\LayoutL3N_liviano_v7.iam")
+LAY = Path(sys.argv[sys.argv.index("--layout") + 1]) if "--layout" in sys.argv else Path(r"C:\DEFYMOTION\L3N\Celdas_IA\LayoutL3N_liviano_v7.iam")
 DXF_ADDIN = "{C24E3AC4-122E-11D5-8E91-0010B541CD80}"
 GRUPOS = {
     "TRANSPORTES": ("Cruz_", "T1_", "T2_", "T3_", "Salida_"),
@@ -32,6 +32,7 @@ GRUPOS = {
     "CELDA_C": ("Celda_C_existente",),
     "LINEA": ("Linea_Pallets",),
     "ROBOT_AEREO": ("Robot_Aereo_Pallets",),
+    "GIRATORIA_A": ("Giratoria_A_ingreso", "Cama_rolos_A_", "IA_Pallet_TBA250_girado"),     # v9
 }
 if "--grupos" in sys.argv:
     _g = sys.argv[sys.argv.index("--grupos") + 1].split(",")
