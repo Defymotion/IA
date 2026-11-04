@@ -1548,3 +1548,18 @@ Inventario de sólo lectura con `info_instalacion.py` (deja `Generados\_info\inf
   - A3 apaisado, planta 1:200 y detalle de la celda A 1:75;
   - base en gris, cambios en color, existentes en gris oscuro;
   - 14 marcas numeradas y tabla de cambios, referencias y rótulo DEFYMOTION / Adecoagro.
+
+### L3N v9 — celda A con 1200 de frente: cama ancha y barrera (04/11/2026, p515-p520)
+
+- La giratoria sirve tal cual: los rolos del plato son de Ø89 x 1323 (9 rolos), como en B y C, y recibe/saca en las dos
+  orientaciones (`l3n_v9_relevar_gir_barrera.py`).
+- Cama paramétrica `Cama_rolos_1933x1699_celdaA` (+200 de ancho; la libre entre guías pasa de ~1081 a ~1281, unos 40 mm
+  por lado con 1200). Crece al norte; el lado de la transmisión queda fijo al sur (cinta interna). En el v9 queda en
+  Z -36439..-34740, a 44 mm de las columnas de la reja norte interna.
+- Pallet `IA_Pallet_TBA250_girado` centrado entre las guías: Z -36193..-34993 (`l3n_v9_pallet_girado.py --dz 24.5`).
+- Emisor de la barrera de salida (IFM, brazo y sensores de muting) a -60 en Z (`l3n_v9_mover_barrera.py`; copias
+  `IA_movido_*` y originales ocultos en el v9): 40 mm libres al pallet; el receptor queda a 241 mm.
+- Alcance con todo esto: 136 cajas, 0 choques, brida a 2,71 m como máximo.
+- Transportes: cruz A, T3 y cruz de esquina (±500) bien con 1200 de costado; bajada T2 (±450) bien con 1000 de costado.
+  Sigue pendiente sólo la salida S-11219/S-11226 (±500 con 1000 de costado, ahora igual para A, B y C): reforma a ±450
+  o rodillos. Último pedido: p520.
