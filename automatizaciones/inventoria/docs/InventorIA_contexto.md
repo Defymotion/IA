@@ -1529,3 +1529,22 @@ Inventario de sólo lectura con `info_instalacion.py` (deja `Generados\_info\inf
 - 04/11 (p512-p513): en el v9 el pallet lleno de A ya queda "1200 de frente", como B y C (1000 en X, 1200 en Z; X -9021..-8021,
   Z -36217..-35017), con `l3n_v9_pallet_girado.py`. Se oculta `Celda_A/IA_Pallet_TBA250` y se agrega
   `IA_Pallet_TBA250_girado`, girado 90° sobre su centro. Último pedido: p513.
+
+### L3N — DWG de la etapa 1 corregido y plano PDF para el cliente (04/11/2026, p514, a003-a009)
+
+- **DWG** `Planos_IA\Revamping E2 - Defymotion - Integracion V1 - ETAPA 1 DEFYMOTION v2.dwg`, editado en el lugar con
+  AutoCAD LT + AutoLISP (`acad_editar_v2.py` + `acad/defy_e1_editar.lsp`; LT 2025 corre AutoLISP con entget/entmod/ssget).
+  Respaldos: `..._respaldo_<fecha>.dwg`.
+  - Textos: "MP402" fuera, "transpaleta" -> "paso de insumos", leyenda sin "(v7)" ni "Capas DEFY_E1_*", fecha 04/11, rótulo
+    de la celda A nuevo.
+  - Capas renombradas: `DEFY_E1_ENVOLVEDORA` y `DEFY_E1_PASILLOS_PASO_INSUMOS`.
+  - Celda A: se borraron las mesas CdR y el pallet viejos (4312 entidades, polígono `borrar_celdaA.json`) y se insertó la
+    giratoria + cama de 1933 + pallet girado. Salen de `l3n_planta_dxf.py --layout v9 --grupos GIRATORIA_A` y
+    `l3n_plano_e1/armar_giratoria_A.py`. El grupo CELDA_A del v9 da E_INVALIDARG en AddBaseView (como CELDA_B).
+  - `--solo-textos` repite sólo los reemplazos, que son idempotentes.
+  - Con el DWG abierto por el usuario, AutoCAD con /b se traba en "¿abrir como sólo lectura?": convertir una copia.
+- **PDF** `Planos_IA\L3N Etapa 1 - Plano de modificaciones A3.pdf` (`l3n_plano_e1/plano_pdf_a3.py zona.dxf`; la versión
+  A1 1:75 es `plano_pdf.py`), hecho en la nube con ezdxf + matplotlib desde el DWG pasado a DXF y recortado a la zona:
+  - A3 apaisado, planta 1:200 y detalle de la celda A 1:75;
+  - base en gris, cambios en color, existentes en gris oscuro;
+  - 14 marcas numeradas y tabla de cambios, referencias y rótulo DEFYMOTION / Adecoagro.
