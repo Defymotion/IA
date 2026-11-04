@@ -13,6 +13,7 @@ mesa como los de la CdR1512 (1565 x 1499).
   que está de ese lado se corren.
 Uso: python cama_rolos_param.py --largo <mm> --ancho <mm> --nombre <N> [--destino <carpeta>] [--rel relevamiento.json]
      [--sin-foto] [--x-patas <x local del par de patas, sólo con largo < 600>]
+     [--dx-patas-fin <mm: corre el par de patas del extremo +X (p. ej. para esquivar algo del layout)>]
 Salida: <destino>\\<N>\\<N>.iam + piezas + resumen.json (+ foto_iso.png).
 """
 import json
@@ -230,7 +231,7 @@ try:
                         continue
                     ddx = (float(arg("--x-patas")) if "--x-patas" in A else (X_A + x_fin) / 2) - (-897.0)
                 else:
-                    ddx = 0.0 if c[0] < -269 else DL
+                    ddx = 0.0 if c[0] < -269 else DL + float(arg("--dx-patas-fin", 0))
             else:
                 ddx = dx_de(c[0])
                 if LARGO < 900 and -650 <= c[0] <= 100:      # la transmisión del medio no entra en una cama corta

@@ -1521,3 +1521,8 @@ Inventario de sólo lectura con `info_instalacion.py` (deja `Generados\_info\inf
   - Queda sin motor: a definir (cadena desde la mesa del puesto o un motor chico).
   - Las carpetas `_celdaA` y `_celdaA_v2` son pruebas.
   - Último pedido: p508.
+- 04/11 (p509-p511), pedido del usuario: una sola cama completa en lugar del tramo extra. Se generó
+  `Generados\CAMA_ROLOS_PARAMETRICA\Cama_rolos_1933x1499_celdaA` (19 rolos, con transmisión; `--dx-patas-fin -111`
+  esquiva la base regulable de la cinta interna, a 10 mm). En el v9 ocupa el lugar de la mesa 1 (misma matriz, de X -9710
+  a -7784): la mesa CdR1512:1 queda oculta en el v9 y se borró el tramo de 368. En `cama_rolos_param.py` se agregó
+  `--dx-patas-fin`; en `l3n_v9_cama_param.py`, `--tx`, `--occ` y `--ocultar-mesa1`. Último pedido: p511.
