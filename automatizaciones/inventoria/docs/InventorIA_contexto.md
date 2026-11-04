@@ -1563,3 +1563,27 @@ Inventario de sólo lectura con `info_instalacion.py` (deja `Generados\_info\inf
 - Transportes: cruz A, T3 y cruz de esquina (±500) bien con 1200 de costado; bajada T2 (±450) bien con 1000 de costado.
   Sigue pendiente sólo la salida S-11219/S-11226 (±500 con 1000 de costado, ahora igual para A, B y C): reforma a ±450
   o rodillos. Último pedido: p520.
+
+### L3N — limpieza (04/11/2026, a010-a011)
+
+- Queda como **modelo final de la etapa 1: `Celdas_IA\LayoutL3N_liviano_v9.iam`**. Es el v7 simulado, con lo aprobado
+  en la simulación v6 y la celda A nueva: giratoria, cama paramétrica 1933x1699, pallet con 1200 de frente, barrera
+  corrida, y los robots B/C fijos.
+- Se apartó (sin borrar) todo lo que no se usa en `C:\DEFYMOTION\L3N\_PARA_BORRAR_2026-11-04\` (3,3 GB) y en
+  `Documents\InventorIA\_PARA_BORRAR_2026-11-04\` (15 GB):
+  - layouts liviano y v2 a v8;
+  - pruebas de la giratoria y de camas;
+  - cintas y rejas viejas sin referencia;
+  - intermedios de los planos;
+  - respaldos;
+  - lo no referenciado de la SIM5;
+  - cuadros y pruebas de la SIM6.
+  Cada carpeta tiene un `LEEME.txt`, y la lista completa está en `lista_movidos.txt`.
+- **Criterio:** sólo se movió lo que no referencia (Apprentice, recursivo; `referencias_a_conservar.py`) ninguno de estos:
+  - el v9;
+  - la escena `L3N_SIM6_Planta.iam`;
+  - los layouts del usuario (`LayoutL3N_Celdas`, `LayoutL3N`, `LayoutL3N_Principal`, `Celda_A_L3N`).
+  Después se verificó que no falte ningún referenciado.
+- En `Planos_IA` quedan sólo el DWG v2 y el PDF A3.
+- `armar_l3n_sim6.py` apunta al v7, que ahora está en la carpeta para borrar: la próxima simulación se arma desde el v9.
+- `cerrar_acad_de_archivo.py` cierra sólo el AutoCAD que abrió un archivo dado.
