@@ -1455,3 +1455,34 @@ Inventario de sólo lectura con `info_instalacion.py` (deja `Generados\_info\inf
   Pedidos en `Documents\InventorIA\_pedidos_acad\aNNN.json` (mismo formato). Se lanza con el pedido
   `lanzar_vigilante_acad.py` en la cola principal (no hace falta tocar la PC). Último: a002 (DWG v2 hecho en 50 s).
 - Último pedido de Inventor: p487.
+
+### L3N — v9: mesa giratoria en el ingreso de la celda A (04/11/2026, p488-p492)
+
+- Pedido: que todos los pallets lleguen a la envolvedora con la misma orientación. Se reemplazan las 2 camas de rolos
+  iniciales de A (CdR1512 :2 y :3) por una giratoria (el mismo CAD de B/C). El pallet **vacío** gira 90° y después se
+  paletiza con 1000 en X y 1200 en Z.
+- Alcance (`scripts/l3n_giratoria_A/alcance_A.py`, IK y patrón de la simulación): llega a las 136 cajas desde donde está
+  el robot. La brida queda a 2,63 m como máximo (hoy 2,52 m). En las capas impares, la toma de 3 cajas cruza la columna
+  emisora IFM de la salida. Se resuelve con el orden de las garras o con el pallet a +100 mm en Z (0 choques).
+- Relevamiento (`l3n_giratoria_A_relevar.py` -> `Analisis\L3N\giratoria_A\relevamiento.json`): la giratoria tiene el
+  plato redondo Ø ~1990 a 540 mm y el bastidor de 1560 x 1645. El rolo del plato termina a 868 mm del centro (como en B).
+- `l3n_layout_v9_giratoria.py` -> `Celdas_IA\LayoutL3N_liviano_v9.iam` (copia del v7; el v7 no se toca):
+  - giratoria `Giratoria_A_ingreso` en X -10582 (dejada del robot aéreo), Z -35622,3, girada +90° respecto de la de B
+    (`--giro 90`), con los rolos a lo largo de Z y el motor bajo la cinta interna, entre sus patas;
+  - tramo corto `IA_Cama_corta_L368` (bloque genérico IA, 1420 de ancho y rolos a 543) entre la giratoria y la mesa del
+    puesto, en `Celdas_IA\Giratoria_A\`;
+  - mesas 2 y 3 ocultas sólo en el v9.
+  - Juegos: plato a 11 mm del panel bajo 1 de la reja norte interna, a 25 mm del caño de la col_2 y a 41 mm del motor de
+    la col_1 -> conviene correr ese tramo de reja ~100 mm al norte. El pallet vacío pasa a 40 mm del lateral de la
+    cinta interna.
+  - Fotos en `Analisis\L3N\giratoria_A\fotos\v8_*.png` (sin el robot aéreo ni las paredes).
+- OJO: `LayoutL3N_liviano_v8.iam` es la v8 descartada (esquina corrida). La primera prueba la pisó y se restituyó; las
+  pruebas quedaron en `Celdas_IA\Giratoria_A\_pruebas\`.
+- Sobrantes del proveedor (los módulos de cadena están todos usados):
+  - cruz S-11217;
+  - 4 rodilleras I-07506 de 1935 y 1 de 2975 (1200 de ancho, rolos a 640);
+  - la envolvedora del proveedor;
+  - las 2 CdR1512 que saca la giratoria.
+- Pendiente: el usuario elige entre una rodillera de 1935 en lugar del tramo corto + la mesa del puesto (368 + 1565 = 1933;
+  bajarla 97 mm, agregar tope y centrado) o acortar una CdR1512 a ~370. Después, la simulación y el DWG con la
+  giratoria. Último pedido: p492.
