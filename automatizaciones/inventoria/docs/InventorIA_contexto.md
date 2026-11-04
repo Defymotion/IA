@@ -1486,3 +1486,38 @@ Inventario de sólo lectura con `info_instalacion.py` (deja `Generados\_info\inf
 - Pendiente: el usuario elige entre una rodillera de 1935 en lugar del tramo corto + la mesa del puesto (368 + 1565 = 1933;
   bajarla 97 mm, agregar tope y centrado) o acortar una CdR1512 a ~370. Después, la simulación y el DWG con la
   giratoria. Último pedido: p492.
+
+### Robots B/C fijos y cama de rolos paramétrica (04/11/2026, p493-p508)
+
+- **Robots de las celdas B y C** (`l3n_robots_bc_fijos.py`, datos `Analisis\L3N\robots_bc_fijos.json`):
+  - en `Celdas_IA\Celda_B_existente.iam` y `Celda_C_existente.iam` se borraron el KUKA-...-ASM y el Gripper_ADECO2_V1
+    (subensambles flexibles que se desarmaban);
+  - se agregaron los eslabones `KUKA_fijo_V01..V05` y el `Gripper_fijo` (sin bandejas), empotrados en la pose de reposo
+    de la simulación v6;
+  - respaldos en `Celdas_IA\_respaldos\Celda_*_antes_robot_fijo_*.iam`;
+  - las matrices del plan vienen redondeadas: hay que re-ortonormalizar o `Occurrences.Add` da E_INVALIDARG;
+  - fotos en `Analisis\L3N\robots_bc_fijos\`;
+  - la escena SIM6 ocultaba los proxies viejos del KUKA: si se rearma, aparecen los fijos en la misma pose (no estorba).
+- **Cama de rolos paramétrica** (`cama_rolos_param.py --largo L --ancho W --nombre N [--x-patas x]`), a partir de la
+  CdR1512 de Fademaq (relevada con `relevar_cama_rolos.py` y `relevar_perfiles_piezas.py`; las piezas son sólidos
+  importados, sin parámetros):
+  - **Se rehacen nativas** con el mismo perfil y el mismo sistema de la pieza (se colocan con la matriz original):
+    - laterales C (300/280 x 80 x 4,8), tapa de cadena, guía plástica y cubrecadena, según el largo;
+    - caño del rolo Ø63,5 x 2, eje Ø17 y travesaños 50x100, según el ancho.
+  - **Se referencian del CAD de Fademaq, sin tocarlo:** patas, motor, piñones, tensores, extremos, rodamientos y
+    bulonería.
+  - **Medidas y crecimiento:**
+    - Largo y ancho son los totales (la CdR1512 es 1565 x 1499).
+    - Crece hacia +X; el lado de la transmisión (Z alto) queda fijo.
+    - Rolos con paso 97,34, centrados.
+    - Con largo < 900 no entra la transmisión del medio. Con largo < 600 queda un solo par de patas.
+  - Los nombres de archivo llevan el nombre de la cama: Inventor no abre dos archivos con el mismo nombre en distintas
+    carpetas (falla SaveAs con E_INVALIDARG).
+  - Salida en `Generados\CAMA_ROLOS_PARAMETRICA\<N>\` (+ `resumen.json`, `foto_iso.png`).
+  - Prueba 1565x1499: misma caja que la original (al 0,1 mm). También se probaron 2500x1100 y 368x1499.
+- **v9**: el tramo genérico se reemplazó por `Cama_rolos_368x1499_celdaA_v3` (`l3n_v9_cama_param.py`), con la misma
+  orientación que las mesas de A (giro 180° sobre Y, transmisión al sur), de X -9707 a -9346.
+  - Patas corridas (`--x-patas -955`): quedan a 19 mm de la base regulable de la cinta interna.
+  - Queda sin motor: a definir (cadena desde la mesa del puesto o un motor chico).
+  - Las carpetas `_celdaA` y `_celdaA_v2` son pruebas.
+  - Último pedido: p508.
