@@ -15,6 +15,8 @@ sys.stdout.reconfigure(encoding="utf-8")
 argv = sys.argv[1:]
 BORRAR = json.loads(Path(argv[argv.index("--borrar") + 1]).read_text(encoding="utf-8")) if "--borrar" in argv else None
 CAPAS_B = argv[argv.index("--capas-borrar") + 1].split(";") if "--capas-borrar" in argv else []
+# en un .scr el espacio equivale a Enter: los nombres de capa con espacios o acentos van con el comodín "?"
+CAPAS_B = ["".join(c if (c.isascii() and c != " ") else "?" for c in n) for n in CAPAS_B]
 TIMEOUT = float(argv[argv.index("--timeout") + 1]) if "--timeout" in argv else 900.0
 CAPAS, ORIG, COPIA = Path(argv[0]), Path(argv[1]), Path(argv[2])
 cands = []

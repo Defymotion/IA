@@ -1436,3 +1436,22 @@ Inventario de sólo lectura con `info_instalacion.py` (deja `Generados\_info\inf
   pasillos de transpaleta, zona del autoelevador, recorridos (reposición de pallets, insumos de cartones), cotas,
   textos y puerta. El tramo final del recorrido de cartones hacia el buffer es una propuesta a confirmar.
   La cota grande "19,23" sobre la T3 viene del plano original. Último pedido: p470.
+
+### L3N — robots B/C armados, DWG v2 limpio y vigilante de AutoCAD (04/11/2026, p471-p487, a001-a002)
+
+- Video: los KUKA y grippers de las celdas B y C (subensambles flexibles del CAD) se veían desarmados. `plan6.py` los
+  oculta y agrega copias estáticas `SIM_{B,C}_V02..V05` y `SIM_{B,C}_Gripper` en pose de reposo (IK con el gripper
+  centrado 250 mm sobre la carga; datos en `l3n_sim6/robots_bc.json`). Escena rearmada (p477) y re-render sólo de los
+  cuadros donde se ven (p481-p486). Video final en `Generados\L3N_SIM6\Animacion\L3N_simulacion_etapa1_Inventor_30fps.mp4`
+  (3:06) y `_30fps_1280.mp4`; los anteriores en `Animacion\_anterior\*_sin_robots_BC.mp4`.
+- DWG v2 `Planos_IA\Revamping E2 - Defymotion - Integracion V1 - ETAPA 1 DEFYMOTION v2.dwg`: antes de insertar borra lo
+  viejo dentro de `Planos_IA\poligono_sala.json` (deja la celda B del plano), sólo en las capas Maquinas,
+  PL_Packaging_Line_1, PL_Leg_Conveyor, PL_Cable_Trench, Designación de equipos, Equipos existentes, CAJA 9X3 250 CC, 2 y 1.
+  - Error: en un .scr el espacio es Enter, así que "Designación de equipos" cortó el `-CAPA` y AutoCAD quedó esperando
+    (p480b). `acad_insertar_capas.py` ahora cambia espacios y acentos de los nombres de capa por el comodín `?`.
+  - Si un guion se traba, AutoCAD queda con FILEDIA/CMDDIA en 0: restaurarlos a 1 antes de cerrar.
+- **Segundo vigilante, sin Inventor**: `vigilante.py --sin-inventor --carpeta _pedidos_acad` (`scripts\vigilante_acad.bat`).
+  No abre ni usa Inventor (instancia "ninguno"); corre en paralelo con el principal para AutoCAD, conversiones, zips.
+  Pedidos en `Documents\InventorIA\_pedidos_acad\aNNN.json` (mismo formato). Se lanza con el pedido
+  `lanzar_vigilante_acad.py` en la cola principal (no hace falta tocar la PC). Último: a002 (DWG v2 hecho en 50 s).
+- Último pedido de Inventor: p487.
