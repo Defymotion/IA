@@ -1526,3 +1526,6 @@ Inventario de sólo lectura con `info_instalacion.py` (deja `Generados\_info\inf
   esquiva la base regulable de la cinta interna, a 10 mm). En el v9 ocupa el lugar de la mesa 1 (misma matriz, de X -9710
   a -7784): la mesa CdR1512:1 queda oculta en el v9 y se borró el tramo de 368. En `cama_rolos_param.py` se agregó
   `--dx-patas-fin`; en `l3n_v9_cama_param.py`, `--tx`, `--occ` y `--ocultar-mesa1`. Último pedido: p511.
+- 04/11 (p512-p513): en el v9 el pallet lleno de A ya queda "1200 de frente", como B y C (1000 en X, 1200 en Z; X -9021..-8021,
+  Z -36217..-35017), con `l3n_v9_pallet_girado.py`. Se oculta `Celda_A/IA_Pallet_TBA250` y se agrega
+  `IA_Pallet_TBA250_girado`, girado 90° sobre su centro. Último pedido: p513.
