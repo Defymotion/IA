@@ -1,5 +1,5 @@
 ;;; DEFYMOTION - edición del DWG de planta de la etapa 1 (L3N). AutoLISP puro (AutoCAD LT 2024+).
-;;; (c:defyrepl)  reemplazos de texto en TEXT/MTEXT de las capas DEFY_E1*
+;;; (c:defyrepl)  reemplazos de texto en TEXT/MTEXT de las capas DEFY_E* (etapas 1 y 2)
 ;;; (dfy-ren a b) renombra una capa si existe
 ;;; (dfy-borrar pts capa) borra lo que está totalmente dentro del polígono pts y en la capa
 (setq *dfy-log* "C:/DEFYMOTION/L3N/Planos_IA/defy_editar_log.txt")
@@ -28,7 +28,20 @@
     (cons "(03/11/2026)" "(04/11/2026)")
     (cons "celda A nueva (azul)" "celda A nueva con mesa giratoria de ingreso y cama de rolos de 1933 mm (azul)")
     (cons "del riel y buffer de cartones" "del riel del robot a\\U+00E9reo de pallets y buffer de cartones")))
+(setq *dfy-e2*
+  (list "BUFFER DE CARTONES nuevo" "INSUMOS DEL BUFFER" "Insumos de cartones" "PUERTA A ANULAR"))
+(setq *dfy-leyenda*
+  (strcat "MODIFICACIONES DEFYMOTION - ETAPAS 1 Y 2 (12/11/2026)\\PLayout de la l\\U+00EDnea de pallets sobre el plano de planta.\\P"
+          "ETAPA 1 (alcance actual): transportes redistribuidos (naranja), envolvedora girada 90\\U+00B0 (magenta), celda A nueva con mesa giratoria de ingreso y cama de rolos de 1933 mm (azul),\\P"
+          "pasillos de paso de insumos (gris), zona de autoelevador (rojo), recorrido de reposici\\U+00F3n de pallets (rojo).\\P"
+          "ETAPA 2 (a futuro): extensi\\U+00F3n del riel del robot a\\U+00E9reo de pallets y buffer de cartones (cian), recorrido de insumos de cartones (bord\\U+00F3),\\P"
+          "puerta a reubicar (ocre) y pallet cautivo (verde)."))
 (defun dfy-all (s / r)
+  (if (dfy-pos "MODIFICACIONES DEFYMOTION" s) (setq s *dfy-leyenda*))
+  (if (and (dfy-pos "RESERVA ETAPA 2" s) (dfy-pos "pallet cautivo" s))
+    (setq s "ETAPA 2 (a futuro): PALLET CAUTIVO\\Preserva de 3,5 x 5,0 m"))
+  (if (not (dfy-pos "ETAPA 2" s))
+    (foreach r *dfy-e2* (if (and (dfy-pos r s) (not (dfy-pos "ETAPA 2" s))) (setq s (strcat "ETAPA 2: " s)))))
   (if (dfy-pos "reja este 300 mm" s)
     (setq s "CELDA A (nueva): mesa giratoria de ingreso y cama de rolos de 1933 mm\\Ppallet con 1200 de frente"))
   (foreach r *dfy-reglas* (setq s (dfy-rep s (car r) (cdr r))))
@@ -51,7 +64,7 @@
   (reverse out))
 (defun c:defyrepl (/ ss i e ed s s2 n f)
   (setq f (open *dfy-log* "a") n 0)
-  (setq ss (ssget "_X" '((0 . "TEXT,MTEXT") (8 . "DEFY_E1*"))))
+  (setq ss (ssget "_X" '((0 . "TEXT,MTEXT") (8 . "DEFY_E*"))))
   (if ss
     (progn
       (setq i 0)
