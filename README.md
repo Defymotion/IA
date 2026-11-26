@@ -4,8 +4,8 @@
 
 <br>
 
-[![Automatizaciones](https://img.shields.io/badge/automatizaciones-2-f28c28?style=for-the-badge&logo=githubactions&logoColor=white)](#-automatizaciones)
-[![Skills](https://img.shields.io/badge/skills_de_Claude-3-ffb35c?style=for-the-badge&logo=anthropic&logoColor=white)](#-skills-de-claude)
+[![Automatizaciones](https://img.shields.io/badge/automatizaciones-3-f28c28?style=for-the-badge&logo=githubactions&logoColor=white)](#-automatizaciones)
+[![Skills](https://img.shields.io/badge/skills_de_Claude-4-ffb35c?style=for-the-badge&logo=anthropic&logoColor=white)](#-skills-de-claude)
 [![Inventor](https://img.shields.io/badge/Autodesk_Inventor-2025-0696D7?style=for-the-badge&logo=autodesk&logoColor=white)](automatizaciones/inventoria/)
 [![Python](https://img.shields.io/badge/Python-3.13-3776AB?style=for-the-badge&logo=python&logoColor=white)](automatizaciones/inventoria/)
 [![KiCad](https://img.shields.io/badge/KiCad-7-314CB0?style=for-the-badge&logo=kicad&logoColor=white)](skills/crear-placa/)
@@ -34,8 +34,13 @@ mindmap
         Celda completa en 1 clic
         Mosaico del pallet
         Chequeo de alcance y carga
+      PLC IA
+        Export e import por Openness
+        Compilar y verificar
+        Watcher en la PC
     Skills de Claude
       InventorIA
+      Programación PLC
       Armar tablero eléctrico
       Crear placa PCB
     Plantillas
@@ -79,6 +84,7 @@ mindmap
 |:-:|---|---|---|:-:|
 | <img src="assets/logo-inventoria.svg" width="32"> | **[InventorIA](automatizaciones/inventoria/)** | Diseño paramétrico en Inventor (grippers, rejas, estructuras), planos A4/DXF, BOM y animaciones de celdas KUKA cuadro a cuadro, todo por script manejado por IA | Inventor 2025 · Python 3.13 · pywin32 · ffmpeg | ✅ En uso |
 | <img src="assets/icon-ilogic.svg" width="32"> | **[Layout de paletizado](automatizaciones/ilogic-layout-paletizado/)** | Regla iLogic con ventana de configuración y vista previa: ubica robot, cintas, pallets, máquinas, vallado y puerta, y avisa si algo queda fuera de alcance o excede la carga | Inventor 2025 · iLogic (VB.NET) | 🧪 En prueba |
+| <img src="assets/icon-plc.svg" width="32"> | **[PLC IA](automatizaciones/plcia/)** | Claude exporta el proyecto de TIA Portal a XML, analiza redes/tags/pantallas, genera los cambios, los importa y compila por un watcher en la PC (Schneider Machine Expert en beta) | TIA Portal V17 · Openness · PowerShell · Python | 🧪 En prueba |
 
 ### Cómo trabaja InventorIA
 
@@ -113,8 +119,9 @@ Una **skill** es un `SKILL.md` que le enseña a Claude un procedimiento completo
 | <img src="assets/logo-inventoria.svg" width="28"> | [`inventoria`](skills/inventoria/SKILL.md) | algo en Inventor, un gripper, planos o una simulación | Modelos, planos y videos en `Generados\` |
 | <img src="assets/icon-tablero.svg" width="28"> | [`armar-tablero-electrico`](skills/armar-tablero-electrico/SKILL.md) | el tablero de un equipo o biorreactor | Presupuesto de potencia, protecciones, BOM en Drive, diagramas y notas de armado |
 | <img src="assets/icon-placa.svg" width="28"> | [`crear-placa`](skills/crear-placa/SKILL.md) | una placa PCB desde especificaciones | Proyecto KiCad 7, Gerber/BOM/CPL, esquemático PDF y diagramas |
+| <img src="assets/icon-plc.svg" width="28"> | [`programacion-plc`](skills/programacion-plc/SKILL.md) | cambios en el programa de un PLC o en pantallas HMI | XML importados y compilados en TIA, resumen por bloque/red y qué cargar |
 
-Las tres siguen el mismo método:
+Todas siguen el mismo método:
 
 ```mermaid
 flowchart LR
@@ -175,14 +182,18 @@ IA/
 │   │   ├── GUIA.pdf                guía maestra impresa
 │   │   ├── docs/                   guía, simulaciones, índice de scripts, historial
 │   │   └── inventor-assistant-portable/   server/ + scripts/ + vigilante
-│   └── ilogic-layout-paletizado/
-│       ├── Generador_Layout_Paletizado.vb
-│       ├── Biblioteca_Layout.ejemplo.txt
-│       └── ejemplos/
+│   ├── ilogic-layout-paletizado/
+│   │   ├── Generador_Layout_Paletizado.vb
+│   │   ├── Biblioteca_Layout.ejemplo.txt
+│   │   └── ejemplos/
+│   └── plcia/                      PLC IA: watcher + adaptadores TIA / Machine Expert
+│       ├── README.md · GUIA.md
+│       └── plc-bridge/             se copia a C:\PLC_Bridge
 ├── 🧠 skills/
 │   ├── inventoria/SKILL.md
 │   ├── armar-tablero-electrico/SKILL.md
-│   └── crear-placa/SKILL.md
+│   ├── crear-placa/SKILL.md
+│   └── programacion-plc/SKILL.md
 ├── 📋 plantillas/                  ficha de automatización + SKILL.md base
 └── 📚 docs/                        convenciones y cómo contribuir
 ```

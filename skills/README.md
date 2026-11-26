@@ -7,6 +7,7 @@ Cada carpeta es una skill lista para cargar: contiene un `SKILL.md` (y, si hace 
 | <img src="../assets/logo-inventoria.svg" width="20"> `inventoria` | Trabajar con Autodesk Inventor por el método InventorIA | [SKILL.md](inventoria/SKILL.md) |
 | <img src="../assets/icon-tablero.svg" width="20"> `armar-tablero-electrico` | Tablero eléctrico de un equipo o biorreactor | [README](armar-tablero-electrico/README.md) |
 | <img src="../assets/icon-placa.svg" width="20"> `crear-placa` | Placa PCB en KiCad 7 desde especificaciones | [README](crear-placa/README.md) |
+| <img src="../assets/icon-plc.svg" width="20"> `programacion-plc` | Leer y modificar programas de PLC/HMI por XML (TIA Openness, Machine Expert beta) | [README](programacion-plc/README.md) |
 
 ## Cómo cargar una skill
 

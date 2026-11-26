@@ -1,0 +1,2 @@
+{ "id": "20261126_0900_info", "vendor": "siemens_tia",
+  "steps": [ { "action": "ping" }, { "action": "info" } ] }
