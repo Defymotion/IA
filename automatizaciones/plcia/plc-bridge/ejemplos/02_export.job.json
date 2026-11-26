@@ -1,0 +1,3 @@
+{ "id": "20261126_0905_export", "vendor": "siemens_tia",
+  "steps": [ { "action": "compile", "objetivo": "plc", "seguir_si_falla": true },
+             { "action": "export", "alcance": ["plc", "hmi"] } ] }

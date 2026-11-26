@@ -1,0 +1,13 @@
+{ "id": "20261126_0910_cambio", "vendor": "siemens_tia",
+  "steps": [
+    { "action": "import", "items": [
+        { "kind": "plc_tagtable", "file": "import_plc/Tabla_nueva.xml" },
+        { "kind": "plc_block",    "file": "import_plc/HMI_DB.xml" },
+        { "kind": "plc_block",    "file": "import_plc/FC_Formato.xml" },
+        { "kind": "plc_block",    "file": "import_plc/FC_Robot.xml" } ] },
+    { "action": "compile", "objetivo": "plc" },
+    { "action": "import", "items": [
+        { "kind": "hmi_tagtable", "file": "import_hmi/tags/Default tag table.xml" },
+        { "kind": "hmi_screen",   "file": "import_hmi/pantallas/Principal.xml" } ] },
+    { "action": "compile", "objetivo": "hmi" },
+    { "action": "export", "alcance": ["plc", "hmi"], "solo": ["FC_Formato", "FC_Robot", "HMI_DB", "Principal"] } ] }

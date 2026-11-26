@@ -1,0 +1,15 @@
+{
+  "_comentario": "Configuracion del PLC_Bridge. Editar rutas segun la PC.",
+  "poll_ms": 1000,
+  "confirmar_importaciones": false,
+  "proyectos_permitidos": [],
+  "siemens_tia": {
+    "version": "V17",
+    "dll": "C:\\Program Files\\Siemens\\Automation\\Portal V17\\PublicAPI\\V17\\Siemens.Engineering.dll",
+    "proyecto_contiene": ""
+  },
+  "schneider_me": {
+    "exe": "C:\\Program Files\\Schneider Electric\\EcoStruxure Machine Expert\\V2.2\\LogicBuilder.exe",
+    "args_extra": []
+  }
+}
