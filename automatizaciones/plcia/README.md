@@ -6,7 +6,7 @@
 
 **Claude lee y modifica programas de PLC y HMI por XML, a través de un watcher que maneja TIA Portal por Openness.**
 
-![Estado](https://img.shields.io/badge/estado-en_prueba-f2c12e?style=flat-square)
+![Estado](https://img.shields.io/badge/estado-en_uso-2ea44f?style=flat-square)
 ![TIA](https://img.shields.io/badge/TIA_Portal-V17-009999?style=flat-square&logo=siemens&logoColor=white)
 ![Schneider](https://img.shields.io/badge/Machine_Expert-beta-3dcd58?style=flat-square)
 ![PowerShell](https://img.shields.io/badge/PowerShell-5.1-5391FE?style=flat-square&logo=powershell&logoColor=white)
@@ -15,7 +15,7 @@
 
 **Qué hace:** exporta el proyecto a XML, Claude lo analiza, genera los cambios (redes LAD, DBs, tags, pantallas HMI), los importa, compila y verifica re-exportando. Todo sin correr scripts a mano.
 **Para quién:** programación de PLC / puesta en marcha.
-**Estado:** 🧪 En prueba (el flujo con scripts sueltos ✅ en uso en un paletizador S7-1500 + KUKA; el watcher es nuevo)
+**Estado:** ✅ En uso con TIA Portal V17 (S7-1500 + panel Comfort) · Schneider Machine Expert 🧪 en prueba
 **Responsable:** Lautaro
 **Versión:** 1.0 · 2026-11-26
 

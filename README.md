@@ -53,22 +53,27 @@ mindmap
 
 <table>
 <tr>
-<td width="25%" align="center" valign="top">
+<td width="20%" align="center" valign="top">
 <a href="automatizaciones/inventoria/"><img src="assets/logo-inventoria.svg" width="72" alt=""></a><br>
 <b><a href="automatizaciones/inventoria/">InventorIA</a></b><br>
 <sub>Claude diseña, dibuja y simula en Inventor por script</sub>
 </td>
-<td width="25%" align="center" valign="top">
+<td width="20%" align="center" valign="top">
 <a href="automatizaciones/ilogic-layout-paletizado/"><img src="assets/icon-ilogic.svg" width="72" alt=""></a><br>
 <b><a href="automatizaciones/ilogic-layout-paletizado/">Layout de paletizado</a></b><br>
 <sub>Regla iLogic que arma la celda entera con vista previa</sub>
 </td>
-<td width="25%" align="center" valign="top">
+<td width="20%" align="center" valign="top">
+<a href="automatizaciones/plcia/"><img src="assets/icon-plc.svg" width="72" alt=""></a><br>
+<b><a href="automatizaciones/plcia/">PLC IA</a></b><br>
+<sub>Claude lee, cambia y compila el PLC y el HMI en TIA Portal</sub>
+</td>
+<td width="20%" align="center" valign="top">
 <a href="skills/armar-tablero-electrico/"><img src="assets/icon-tablero.svg" width="72" alt=""></a><br>
 <b><a href="skills/armar-tablero-electrico/">Tablero eléctrico</a></b><br>
 <sub>Potencia, protecciones, BOM en Drive y revisión</sub>
 </td>
-<td width="25%" align="center" valign="top">
+<td width="20%" align="center" valign="top">
 <a href="skills/crear-placa/"><img src="assets/icon-placa.svg" width="72" alt=""></a><br>
 <b><a href="skills/crear-placa/">Crear placa</a></b><br>
 <sub>PCB en KiCad 7 como código, sin pistas a 90°</sub>
@@ -84,7 +89,7 @@ mindmap
 |:-:|---|---|---|:-:|
 | <img src="assets/logo-inventoria.svg" width="32"> | **[InventorIA](automatizaciones/inventoria/)** | Diseño paramétrico en Inventor (grippers, rejas, estructuras), planos A4/DXF, BOM y animaciones de celdas KUKA cuadro a cuadro, todo por script manejado por IA | Inventor 2025 · Python 3.13 · pywin32 · ffmpeg | ✅ En uso |
 | <img src="assets/icon-ilogic.svg" width="32"> | **[Layout de paletizado](automatizaciones/ilogic-layout-paletizado/)** | Regla iLogic con ventana de configuración y vista previa: ubica robot, cintas, pallets, máquinas, vallado y puerta, y avisa si algo queda fuera de alcance o excede la carga | Inventor 2025 · iLogic (VB.NET) | 🧪 En prueba |
-| <img src="assets/icon-plc.svg" width="32"> | **[PLC IA](automatizaciones/plcia/)** | Claude exporta el proyecto de TIA Portal a XML, analiza redes/tags/pantallas, genera los cambios, los importa y compila por un watcher en la PC (Schneider Machine Expert en beta) | TIA Portal V17 · Openness · PowerShell · Python | 🧪 En prueba |
+| <img src="assets/icon-plc.svg" width="32"> | **[PLC IA](automatizaciones/plcia/)** | Claude exporta el proyecto de TIA Portal a XML, analiza redes/tags/pantallas, genera los cambios, los importa y compila por un watcher en la PC (Schneider Machine Expert en beta) | TIA Portal V17 · Openness · PowerShell · Python | ✅ En uso |
 
 ### Cómo trabaja InventorIA
 
